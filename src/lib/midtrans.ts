@@ -44,11 +44,17 @@ export async function chargeQris(orderId: string, amount: number) {
     body: {
       payment_type: "qris",
       transaction_details: { order_id: orderId, gross_amount: Math.round(amount) },
-      qris: { acquirer: "gopay" },
+      // Penyedia QRIS yang aktif di akun Midtrans: "gopay" (bawaan) atau "airpay shopee".
+      qris: { acquirer: process.env.MIDTRANS_QRIS_ACQUIRER || "gopay" },
       custom_expiry: { expiry_duration: 15, unit: "minute" },
     },
   });
   if (r.status_code !== "201") {
+    if (r.status_code === "402" || /not activated/i.test(r.status_message ?? "")) {
+      throw new Error(
+        "QRIS belum aktif di akun Midtrans. Aktifkan di Midtrans > Settings > Payment, atau ganti MIDTRANS_QRIS_ACQUIRER.",
+      );
+    }
     throw new Error(`Midtrans menolak tagihan: ${r.status_message ?? r.status_code}`);
   }
   const qrUrl = r.actions?.find((a) => a.name === "generate-qr-code")?.url;
