@@ -25,6 +25,8 @@ export async function proxy(request: NextRequest) {
   const loggedIn = Boolean(data?.claims);
   const { pathname } = request.nextUrl;
 
+  // API memeriksa login sendiri dan menjawab 401 dalam JSON, bukan redirect ke halaman.
+  if (pathname.startsWith("/api/")) return response;
   if (!loggedIn && pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
