@@ -126,7 +126,8 @@ create index if not exists sales_created_idx on public.sales (created_at desc);
 create table if not exists public.sale_items (
   id uuid primary key default gen_random_uuid(),
   sale_id uuid not null references public.sales (id) on delete cascade,
-  product_id uuid not null references public.products (id),
+  -- Kosong jika barangnya sudah dihapus; nama/satuan/harga/modal tetap tersimpan di baris ini.
+  product_id uuid references public.products (id) on delete set null,
   product_unit_id uuid references public.product_units (id) on delete set null,
   product_name text not null,
   unit_name text not null,
@@ -188,10 +189,26 @@ create policy "owner tambah produk" on public.products for insert with check (pu
 drop policy if exists "owner ubah produk" on public.products;
 create policy "owner ubah produk" on public.products for update
   using (public.is_owner()) with check (public.is_owner());
--- Barang yang sudah pernah terjual tetap tidak bisa dihapus (foreign key sale_items),
--- supaya riwayat dan laporan utuh; aplikasi menawarkan "nonaktifkan" sebagai gantinya.
+-- Hapus barang: riwayat penjualan tetap utuh karena sale_items menyimpan salinan nama, harga, dan modal.
 drop policy if exists "owner hapus produk" on public.products;
 create policy "owner hapus produk" on public.products for delete using (public.is_owner());
+
+-- Tolak hapus barang yang masih ada di transaksi QRIS belum dibayar (stoknya akan dikurangi saat lunas).
+create or replace function public.guard_product_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if exists (
+    select 1 from public.sale_items i join public.sales s on s.id = i.sale_id
+    where i.product_id = old.id and s.status = 'pending'
+  ) then
+    raise exception '% masih ada di transaksi QRIS yang belum dibayar. Selesaikan atau batalkan dulu.', old.name;
+  end if;
+  return old;
+end $$;
+
+drop trigger if exists guard_product_delete on public.products;
+create trigger guard_product_delete before delete on public.products
+  for each row execute function public.guard_product_delete();
 
 drop policy if exists "baca satuan" on public.product_units;
 create policy "baca satuan" on public.product_units for select using (public.is_member());

@@ -208,8 +208,8 @@ function BarangContent() {
 }
 
 /**
- * Konfirmasi hapus. Barang yang sudah pernah terjual ditolak database (riwayat & laporan
- * butuh datanya), jadi untuk itu ditawarkan "nonaktifkan": hilang dari kasir, riwayat tetap utuh.
+ * Konfirmasi hapus. Barang benar-benar dihapus; struk & laporan lama tetap utuh karena
+ * setiap baris penjualan menyimpan salinan nama, satuan, harga, dan modal barang.
  */
 function DeleteProduct({
   product,
@@ -224,7 +224,6 @@ function DeleteProduct({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sold, setSold] = useState(false);
 
   // Satuan barang lain yang memakai barang ini sebagai wadah tukar (mis. tabung gas kosong).
   const usedAsContainer = products.flatMap((p) =>
@@ -237,58 +236,27 @@ function DeleteProduct({
     const { data, error } = await supabaseBrowser().from("products").delete().eq("id", product.id).select("id");
     setBusy(false);
     if (error) {
-      if (error.code === "23503") return setSold(true);
+      // Database lama: penjualan masih mengunci barangnya.
+      if (error.code === "23503") {
+        return setError("Database belum diperbarui. Jalankan supabase/update-002-hapus-barang-terjual.sql di SQL Editor.");
+      }
       return setError(errorMessage(error));
     }
     if (!data?.length) {
-      return setError("Database belum mengizinkan hapus barang. Jalankan supabase/update-001-hapus-barang.sql di SQL Editor.");
+      return setError(
+        "Database belum mengizinkan hapus barang. Jalankan supabase/update-001-hapus-barang.sql dan update-002-hapus-barang-terjual.sql di SQL Editor.",
+      );
     }
     onDone();
-  }
-
-  async function deactivate() {
-    setBusy(true);
-    setError(null);
-    const { error } = await supabaseBrowser().from("products").update({ is_active: false }).eq("id", product.id);
-    setBusy(false);
-    if (error) return setError(errorMessage(error));
-    onDone();
-  }
-
-  if (sold) {
-    return (
-      <div className="space-y-4">
-        <p>
-          <strong>{product.name}</strong> sudah pernah terjual, jadi tidak bisa dihapus. Riwayat transaksi, struk, dan laporan
-          laba masih membutuhkan datanya.
-        </p>
-        {product.is_active ? (
-          <p className="rounded-xl bg-canvas p-4 text-sm text-muted">
-            Nonaktifkan saja: barang tidak muncul lagi di kasir, tapi riwayatnya tetap utuh. Bisa diaktifkan lagi lewat
-            tombol Ubah.
-          </p>
-        ) : (
-          <p className="rounded-xl bg-canvas p-4 text-sm text-muted">Barang ini sudah nonaktif dan tidak muncul di kasir.</p>
-        )}
-        {error && <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger">{error}</p>}
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            {product.is_active ? "Batal" : "Tutup"}
-          </button>
-          {product.is_active && (
-            <button type="button" className="btn btn-primary" onClick={deactivate} disabled={busy}>
-              {busy ? "Menyimpan…" : "Nonaktifkan barang"}
-            </button>
-          )}
-        </div>
-      </div>
-    );
   }
 
   return (
     <div className="space-y-4">
       <p>
         Hapus <strong>{product.name}</strong> beserta satuan jual dan riwayat stoknya? Tindakan ini tidak bisa dibatalkan.
+      </p>
+      <p className="rounded-xl bg-canvas p-4 text-sm text-muted">
+        Struk dan laporan penjualan lama tetap aman: nama, harga, dan modal barang ini sudah tersimpan di setiap transaksi.
       </p>
       {product.stock > 0 && (
         <p className="rounded-xl bg-[#fff4d6] px-4 py-3 text-sm text-[#7a4b00]">
@@ -301,7 +269,11 @@ function DeleteProduct({
           menambah stok wadah kosong.
         </p>
       )}
-      {error && <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger">
+          {error}
+        </p>
+      )}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button type="button" className="btn btn-ghost" onClick={onClose} autoFocus>
           Batal

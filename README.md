@@ -21,7 +21,7 @@ Pintasan kasir: `F2` cari barang, `F9` bayar.
 
 1. Buat project di [supabase.com](https://supabase.com).
 2. Buka **SQL Editor**, jalankan isi `supabase/schema.sql`.
-   Kalau database sudah dibuat dari versi lama, cukup jalankan file `supabase/update-*.sql` yang belum pernah dijalankan.
+   Kalau database sudah dibuat dari versi lama, jalankan file `supabase/update-*.sql` yang belum pernah dijalankan, berurutan dari nomor terkecil.
 3. (Opsional) jalankan `supabase/seed.sql` untuk data contoh. Harganya hanya contoh, ubah sesuai warung kamu.
 4. Buka **Authentication > Users > Add user**, buat akun pemilik dulu.
    **Pengguna pertama otomatis jadi pemilik**, akun berikutnya jadi kasir.
