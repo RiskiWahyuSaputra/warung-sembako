@@ -10,7 +10,7 @@ export type SaleLinePayload = { unit_id: string; qty: number } | { unit_id: stri
 
 type Stage =
   | { kind: "form" }
-  | { kind: "qris"; sale: Sale; qrUrl: string | null; expiresAt: number; error: string | null }
+  | { kind: "qris"; sale: Sale; qrUrl: string | null; snapToken: string | null; expiresAt: number; error: string | null }
   | { kind: "done"; saleId: string };
 
 /** Pecahan uang yang biasa diterima, untuk tombol cepat. */
@@ -84,7 +84,8 @@ export function Checkout({
     setStage({
       kind: "qris",
       sale,
-      qrUrl: res.ok ? body.qr_url : null,
+      qrUrl: res.ok ? (body.qr_url ?? null) : null,
+      snapToken: res.ok ? (body.snap_token ?? null) : null,
       expiresAt: Date.now() + 15 * 60_000,
       error: res.ok ? null : body.error || "Gagal membuat QR",
     });
@@ -213,7 +214,7 @@ function QrisWait({
 
   // Tanya status ke server tiap 3 detik sampai lunas / batal / kedaluwarsa.
   useEffect(() => {
-    if (status !== "pending" || !stage.qrUrl) return;
+    if (status !== "pending" || (!stage.qrUrl && !stage.snapToken)) return;
     const t = setInterval(async () => {
       setNow(Date.now());
       const res = await fetch(`/api/midtrans/status?sale_id=${stage.sale.id}`);
@@ -263,6 +264,8 @@ function QrisWait({
       {stage.qrUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- gambar QR dari server Midtrans, bukan aset lokal
         <img src={stage.qrUrl} alt={`QRIS untuk membayar ${rupiah(stage.sale.total)}`} width={280} height={280} className="mx-auto rounded-lg border border-line bg-white p-2" />
+      ) : stage.snapToken ? (
+        <SnapEmbed token={stage.snapToken} />
       ) : null}
       {error ? (
         <p role="alert" className="font-semibold text-brick">
@@ -373,6 +376,66 @@ function CustomerPicker({ value, onChange }: { value: string; onChange: (id: str
         <button type="button" className="btn btn-ghost" onClick={() => setAdding(true)}>
           Pelanggan baru
         </button>
+      )}
+    </div>
+  );
+}
+
+declare global {
+  interface Window {
+    snap?: { embed: (token: string, options: Record<string, unknown>) => void };
+  }
+}
+
+let snapScript: Promise<void> | null = null;
+
+/** Memuat snap.js Midtrans sekali saja. */
+function loadSnap(): Promise<void> {
+  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+  if (!clientKey) return Promise.reject(new Error("NEXT_PUBLIC_MIDTRANS_CLIENT_KEY belum diisi di .env.local"));
+  snapScript ??= new Promise<void>((resolve, reject) => {
+    const host = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true" ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";
+    const el = document.createElement("script");
+    el.src = `${host}/snap/snap.js`;
+    el.dataset.clientKey = clientKey;
+    el.async = true;
+    el.onload = () => resolve();
+    el.onerror = () => {
+      snapScript = null;
+      reject(new Error("Gagal memuat Snap Midtrans. Periksa koneksi internet."));
+    };
+    document.head.appendChild(el);
+  });
+  return snapScript;
+}
+
+/** Halaman QRIS Snap ditanam di dialog kasir. Status lunas tetap dicek lewat server. */
+function SnapEmbed({ token }: { token: string }) {
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadSnap()
+      .then(() => {
+        if (cancelled || !window.snap) return;
+        window.snap.embed(token, {
+          embedId: "snap-embed",
+          onError: () => setError("Midtrans gagal menampilkan QRIS. Batalkan lalu coba lagi."),
+        });
+      })
+      .catch((e: Error) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  return (
+    <div>
+      <div id="snap-embed" className="mx-auto min-h-[520px] w-full overflow-hidden rounded-lg border border-line bg-white" />
+      {error && (
+        <p role="alert" className="mt-2 font-semibold text-brick">
+          {error}
+        </p>
       )}
     </div>
   );

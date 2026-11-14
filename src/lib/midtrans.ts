@@ -62,6 +62,39 @@ export async function chargeQris(orderId: string, amount: number) {
   return { qrUrl, qrString: r.qr_string ?? null, expiryTime: r.expiry_time ?? null };
 }
 
+/**
+ * Cara bayar QRIS: "snap" (bawaan) memakai halaman Snap yang ditanam di dialog kasir,
+ * "core" menampilkan gambar QR langsung (butuh Core API diaktifkan Midtrans untuk akunmu).
+ */
+export const qrisMode = (): "snap" | "core" => (process.env.MIDTRANS_QRIS_MODE === "core" ? "core" : "snap");
+
+/** Membuat transaksi Snap yang hanya menawarkan QRIS. Berlaku 15 menit. */
+export async function createSnapQris(orderId: string, amount: number) {
+  const host = isProduction ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";
+  const res = await fetch(`${host}/snap/v1/transactions`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Basic ${Buffer.from(`${serverKey()}:`).toString("base64")}`,
+    },
+    body: JSON.stringify({
+      transaction_details: { order_id: orderId, gross_amount: Math.round(amount) },
+      enabled_payments: ["other_qris"],
+      expiry: { unit: "minute", duration: 15 },
+    }),
+    cache: "no-store",
+  });
+  const r = (await res.json()) as { token?: string; redirect_url?: string; error_messages?: string[]; error?: string };
+  if (!res.ok || !r.token) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("Server key belum diberi izin Snap Checkout. Ubah izinnya di Midtrans > Settings > Access Keys.");
+    }
+    throw new Error(`Midtrans menolak tagihan: ${r.error_messages?.join(", ") ?? r.error ?? res.status}`);
+  }
+  return { token: r.token, redirectUrl: r.redirect_url ?? null };
+}
+
 export const getStatus = (orderId: string) => call<MidtransResponse>(`/v2/${encodeURIComponent(orderId)}/status`);
 export const cancelCharge = (orderId: string) =>
   call<MidtransResponse>(`/v2/${encodeURIComponent(orderId)}/cancel`, { method: "POST" });

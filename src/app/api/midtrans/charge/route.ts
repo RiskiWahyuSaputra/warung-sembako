@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadSaleForUser } from "@/lib/api-auth";
-import { chargeQris } from "@/lib/midtrans";
+import { chargeQris, createSnapQris, qrisMode } from "@/lib/midtrans";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Membuat QR Midtrans untuk penjualan QRIS yang masih menunggu bayar.
@@ -19,14 +19,22 @@ export async function POST(request: Request) {
   // order_id unik per percobaan, supaya QR bisa dibuat ulang jika gagal.
   const orderId = `${sale.invoice_no}-${Date.now().toString(36)}`;
   try {
+    const save = async (url: string | null) => {
+      const { error } = await supabaseAdmin()
+        .from("sales")
+        .update({ midtrans_order_id: orderId, qr_url: url })
+        .eq("id", sale.id)
+        .eq("status", "pending");
+      if (error) throw error;
+    };
+    if (qrisMode() === "snap") {
+      const snap = await createSnapQris(orderId, Number(sale.total));
+      await save(snap.redirectUrl);
+      return NextResponse.json({ mode: "snap", snap_token: snap.token, order_id: orderId });
+    }
     const qr = await chargeQris(orderId, Number(sale.total));
-    const { error } = await supabaseAdmin()
-      .from("sales")
-      .update({ midtrans_order_id: orderId, qr_url: qr.qrUrl })
-      .eq("id", sale.id)
-      .eq("status", "pending");
-    if (error) throw error;
-    return NextResponse.json({ qr_url: qr.qrUrl, expiry_time: qr.expiryTime, order_id: orderId });
+    await save(qr.qrUrl);
+    return NextResponse.json({ mode: "core", qr_url: qr.qrUrl, expiry_time: qr.expiryTime, order_id: orderId });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Gagal menghubungi Midtrans" }, { status: 502 });
   }

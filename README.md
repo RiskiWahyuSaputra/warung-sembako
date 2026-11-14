@@ -30,9 +30,17 @@ Pintasan kasir: `F2` cari barang, `F9` bayar.
 ### 2. Midtrans (QRIS)
 
 1. Daftar di [dashboard.midtrans.com](https://dashboard.midtrans.com), pakai mode **Sandbox** dulu.
-2. Ambil **Server Key** di Settings > Access Keys.
-3. Setelah aplikasi online, isi **Settings > Payment > Notification URL** dengan
+2. Pastikan **Other QRIS** aktif di **Settings > Snap Checkout > Payment methods**.
+3. Di **Settings > Access Keys**, buat server key dengan izin:
+   - **Snap Checkout: Write** (membuat halaman QRIS)
+   - **Core API: Write** (cek status pembayaran)
+   - **Cancel transaction: Write** (tombol "Batalkan QRIS")
+4. Salin **server key** ke `MIDTRANS_SERVER_KEY` dan **client key** ke `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`.
+5. Setelah aplikasi online, isi **Settings > Payment > Notification URL** dengan
    `https://domain-kamu/api/midtrans/notification`.
+
+QRIS tampil lewat halaman Snap yang ditanam di dialog kasir (`MIDTRANS_QRIS_MODE=snap`).
+Kalau Midtrans sudah mengaktifkan Core API untuk akunmu, `MIDTRANS_QRIS_MODE=core` menampilkan gambar QR langsung.
 
 Selama development di localhost, webhook Midtrans tidak bisa menjangkau komputer kamu.
 Tidak masalah: layar kasir mengecek status pembayaran ke Midtrans setiap 3 detik.
