@@ -188,6 +188,10 @@ create policy "owner tambah produk" on public.products for insert with check (pu
 drop policy if exists "owner ubah produk" on public.products;
 create policy "owner ubah produk" on public.products for update
   using (public.is_owner()) with check (public.is_owner());
+-- Barang yang sudah pernah terjual tetap tidak bisa dihapus (foreign key sale_items),
+-- supaya riwayat dan laporan utuh; aplikasi menawarkan "nonaktifkan" sebagai gantinya.
+drop policy if exists "owner hapus produk" on public.products;
+create policy "owner hapus produk" on public.products for delete using (public.is_owner());
 
 drop policy if exists "baca satuan" on public.product_units;
 create policy "baca satuan" on public.product_units for select using (public.is_member());
