@@ -59,7 +59,7 @@ function StokContent() {
 
   return (
     <>
-      <PageHeader title="Stok" />
+      <PageHeader title="Stok" description="Catat barang masuk, cek yang perlu dibeli, dan samakan stok dengan rak." />
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <StockInForm products={products} onSaved={refresh} />
         <div className="space-y-5">
@@ -68,13 +68,13 @@ function StokContent() {
               Perlu dibeli
             </h2>
             {low.length === 0 ? (
-              <p className="mt-2 text-ink-soft">Semua stok masih di atas batas.</p>
+              <p className="mt-2 text-muted">Semua stok masih di atas batas.</p>
             ) : (
-              <ul className="mt-2 divide-y divide-dashed divide-line">
+              <ul className="mt-2 divide-y divide-line">
                 {low.map((p) => (
                   <li key={p.id} className="flex justify-between gap-3 py-2">
                     <span className="min-w-0 break-words">{p.name}</span>
-                    <span className="shrink-0 font-bold text-brick">
+                    <span className="shrink-0 font-bold text-danger">
                       {qty(p.stock)} {p.base_unit}
                     </span>
                   </li>
@@ -135,7 +135,7 @@ function ProductSelect({
           />
         </div>
       )}
-      {msg && <p role="alert" className="mt-1 text-sm text-brick">{msg}</p>}
+      {msg && <p role="alert" className="mt-1 text-sm text-danger">{msg}</p>}
     </div>
   );
 }
@@ -186,7 +186,7 @@ function StockInForm({ products, onSaved }: { products: Product[]; onSaved: () =
       <h2 id="barang-masuk" className="text-lg font-extrabold">
         Barang masuk
       </h2>
-      <p className="mb-4 text-sm text-ink-soft">Catat belanja dari supplier atau agen. Harga modal dihitung rata-rata otomatis.</p>
+      <p className="mb-4 text-sm text-muted">Catat belanja dari supplier atau agen. Harga modal dihitung rata-rata otomatis.</p>
       <form onSubmit={submit} className="space-y-4">
         <ProductSelect
           id="in-product"
@@ -230,7 +230,7 @@ function StockInForm({ products, onSaved }: { products: Product[]; onSaved: () =
               </label>
               <input id="in-cost" className="field" inputMode="numeric" value={totalCost} onChange={(e) => setTotalCost(e.target.value)} />
               {baseQty > 0 && !Number.isNaN(unitCost) && (
-                <p className="mt-1 text-sm text-ink-soft">
+                <p className="mt-1 text-sm text-muted">
                   = {qty(baseQty)} {product.base_unit}, modal {rupiah(unitCost)}/{product.base_unit}
                 </p>
               )}
@@ -243,8 +243,8 @@ function StockInForm({ products, onSaved }: { products: Product[]; onSaved: () =
             </div>
           </>
         )}
-        {error && <p role="alert" className="font-semibold text-brick">{error}</p>}
-        {done && <p role="status" className="font-semibold text-green">{done}</p>}
+        {error && <p role="alert" className="font-semibold text-danger">{error}</p>}
+        {done && <p role="status" className="font-semibold text-primary">{done}</p>}
         <button type="submit" className="btn btn-primary w-full" disabled={busy || !product}>
           {busy ? "Menyimpan…" : "Tambah stok"}
         </button>
@@ -289,7 +289,7 @@ function AdjustForm({ products, onSaved }: { products: Product[]; onSaved: () =>
       <h2 id="opname" className="text-lg font-extrabold">
         Stok opname
       </h2>
-      <p className="mb-4 text-sm text-ink-soft">Samakan stok di aplikasi dengan hasil hitung di rak. Selisihnya tercatat di riwayat.</p>
+      <p className="mb-4 text-sm text-muted">Samakan stok di aplikasi dengan hasil hitung di rak. Selisihnya tercatat di riwayat.</p>
       <form onSubmit={submit} className="space-y-4">
         <ProductSelect id="adj-product" products={products} value={productId} onChange={(id) => setProductId(id)} />
         {product && (
@@ -299,7 +299,7 @@ function AdjustForm({ products, onSaved }: { products: Product[]; onSaved: () =>
                 Hitung fisik ({product.base_unit})
               </label>
               <input id="adj-count" className="field" inputMode="decimal" value={count} onChange={(e) => setCount(e.target.value)} />
-              <p className="mt-1 text-sm text-ink-soft">
+              <p className="mt-1 text-sm text-muted">
                 Di aplikasi: {qty(product.stock)} {product.base_unit}
               </p>
             </div>
@@ -311,8 +311,8 @@ function AdjustForm({ products, onSaved }: { products: Product[]; onSaved: () =>
             </div>
           </div>
         )}
-        {error && <p role="alert" className="font-semibold text-brick">{error}</p>}
-        {done && <p role="status" className="font-semibold text-green">{done}</p>}
+        {error && <p role="alert" className="font-semibold text-danger">{error}</p>}
+        {done && <p role="status" className="font-semibold text-primary">{done}</p>}
         <button type="submit" className="btn btn-ghost w-full" disabled={busy || !product}>
           {busy ? "Menyimpan…" : "Simpan hasil opname"}
         </button>
@@ -375,22 +375,22 @@ function History({ products, version }: { products: Product[]; version: number }
       ) : rows.length === 0 ? (
         <Empty title="Belum ada pergerakan stok" />
       ) : (
-        <ul className="panel divide-y divide-dashed divide-line">
+        <ul className="panel divide-y divide-line">
           {rows.map((m) => (
             <li key={m.id} className="grid gap-1 p-3 sm:grid-cols-[1.5fr_1fr_1fr_1fr] sm:items-center">
               <div className="min-w-0">
                 <p className="font-semibold break-words">{m.products?.name ?? "Barang terhapus"}</p>
-                <p className="text-xs text-ink-soft">{dateTime(m.created_at)}</p>
+                <p className="text-xs text-muted">{dateTime(m.created_at)}</p>
               </div>
               <p className="text-sm">
                 {TYPE_LABEL[m.type]}
-                {m.note && <span className="text-ink-soft"> · {m.note}</span>}
+                {m.note && <span className="text-muted"> · {m.note}</span>}
               </p>
-              <p className={`font-bold ${Number(m.qty_change) < 0 ? "text-brick" : "text-green"}`}>
+              <p className={`font-bold ${Number(m.qty_change) < 0 ? "text-danger" : "text-primary"}`}>
                 {Number(m.qty_change) > 0 ? "+" : ""}
                 {qty(m.qty_change)} {m.products?.base_unit}
               </p>
-              <p className="text-sm text-ink-soft">
+              <p className="text-sm text-muted">
                 Sisa {qty(m.stock_after)}
               </p>
             </li>

@@ -1,38 +1,46 @@
 @import "tailwindcss";
 
 /*
-  Arah desain (alasan tiap keputusan):
-  - Kertas krem + tinta cokelat tua: meniru nota/buku warung, lebih hangat dari putih polos.
-  - Hijau tua (--green): satu warna aksi utama (bayar, simpan). Tidak bentrok dengan merah.
-  - Merah bata (--brick): SATU aksen, hanya untuk total belanja, stok menipis, dan kasbon.
-  - Garis putus-putus (.perforated): motif struk, dipakai berulang di keranjang, struk, dan pemisah daftar.
-  - Tema terang tetap: kasir warung sering bekerja di tempat terang/semi-terbuka; latar gelap sulit dibaca di sana.
+  Arah desain: POS modern (dipilih pemilik).
+  - Kanvas abu muda + permukaan putih berbayang halus: kartu & panel terpisah jelas dari latar.
+  - --primary (emerald): satu warna aksi (bayar, simpan, menu aktif). Teks putih di atasnya 5,5:1.
+  - --accent (amber): penanda jumlah barang di keranjang, satu-satunya aksen.
+  - --danger (merah): hanya stok habis/kurang, hapus, kasbon.
+  - Warna kategori (lihat lib/category-color.ts): pengenal visual kategori di kartu barang,
+    pengganti foto barang yang belum ada.
+  - Tema terang: kasir sering bekerja di tempat terang; gelap sulit dibaca di sana.
 */
 :root {
-  --paper: #f6f0e3;
-  --card: #fffdf7;
-  --ink: #2a2017;
-  --ink-soft: #62544a; /* 6.4:1 di atas --paper */
-  --line: #ddd1bb;
-  --green: #1d5638;
-  --green-hover: #164229;
-  --green-tint: #e3eee6;
-  --brick: #9c3a22; /* 6.2:1 di atas --card */
-  --brick-tint: #f7e4dc;
-  --focus: #b06a00;
+  --canvas: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #111827;
+  --muted: #5b6472; /* 6,1:1 di atas putih */
+  --line: #e4e7ec;
+  --primary: #047857;
+  --primary-hover: #065f46;
+  --primary-soft: #e6f5ee;
+  --accent: #f5b301;
+  --danger: #c0262d;
+  --danger-soft: #fdecec;
+  --focus: #2563eb;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.07);
+  --shadow-pop: 0 12px 32px rgb(16 24 40 / 0.16);
 }
 
 @theme inline {
-  --color-paper: var(--paper);
-  --color-card: var(--card);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
   --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
   --color-line: var(--line);
-  --color-green: var(--green);
-  --color-green-hover: var(--green-hover);
-  --color-green-tint: var(--green-tint);
-  --color-brick: var(--brick);
-  --color-brick-tint: var(--brick-tint);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
 }
 
@@ -41,7 +49,7 @@ html {
 }
 
 body {
-  background: var(--paper);
+  background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans);
   font-feature-settings: "tnum" 1; /* angka tabular: kolom harga rata */
@@ -69,92 +77,118 @@ body {
 }
 
 @layer components {
-  .perforated {
-    border-style: dashed;
-    border-color: var(--line);
-  }
-
-  /* Tepi bergerigi seperti kertas struk yang disobek */
-  .receipt-edge {
-    position: relative;
-  }
-  .receipt-edge::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -8px;
-    height: 8px;
-    background: linear-gradient(-45deg, transparent 6px, var(--card) 0) 0 0 / 12px 8px repeat-x,
-      linear-gradient(45deg, transparent 6px, var(--card) 0) 0 0 / 12px 8px repeat-x;
-  }
-
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     min-height: 44px;
-    padding: 0 1rem;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: background-color 120ms, border-color 120ms, color 120ms, transform 80ms;
+    padding: 0 1.1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    transition: background-color 120ms, border-color 120ms, color 120ms, box-shadow 120ms, transform 80ms;
   }
   .btn:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: scale(0.98);
   }
   .btn:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
   }
   .btn-primary {
-    background: var(--green);
+    background: var(--primary);
     color: #fff;
+    box-shadow: 0 1px 2px rgb(4 120 87 / 0.25);
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--green-hover);
+    background: var(--primary-hover);
   }
   .btn-ghost {
-    background: var(--card);
+    background: var(--surface);
     border: 1px solid var(--line);
     color: var(--ink);
   }
   .btn-ghost:hover:not(:disabled) {
-    border-color: var(--ink-soft);
+    background: var(--canvas);
+    border-color: #cfd4dc;
   }
   .btn-danger {
-    background: var(--card);
-    border: 1px solid var(--brick);
-    color: var(--brick);
+    background: var(--surface);
+    border: 1px solid #f1b5b8;
+    color: var(--danger);
   }
   .btn-danger:hover:not(:disabled) {
-    background: var(--brick-tint);
+    background: var(--danger-soft);
+  }
+  .btn-icon {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 0;
   }
 
   .field {
     width: 100%;
     min-height: 44px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.85rem;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--card);
+    border-radius: 10px;
+    background: var(--surface);
     color: var(--ink);
+    transition: border-color 120ms, box-shadow 120ms;
   }
   .field:hover:not(:disabled) {
-    border-color: var(--ink-soft);
+    border-color: #cfd4dc;
+  }
+  .field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+    outline: none;
+  }
+  .field:focus-visible {
+    outline: none;
   }
   .field::placeholder {
-    color: var(--ink-soft);
+    color: #8a929e;
   }
   .label {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
     font-size: 0.875rem;
     font-weight: 600;
+    color: var(--ink);
   }
   .panel {
-    background: var(--card);
+    background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 40px;
+    padding: 0 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background-color 120ms, border-color 120ms, color 120ms;
+  }
+  .chip:hover {
+    border-color: #cfd4dc;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+
+  /* Motif struk: hanya dipakai di kertas struk */
+  .perforated {
+    border-style: dashed;
+    border-color: #cfd4dc;
   }
 }
 
@@ -188,6 +222,8 @@ body {
     font-size: 10px;
     color: #000;
     background: #fff;
+    box-shadow: none;
+    border: 0;
   }
   .no-print {
     display: none !important;

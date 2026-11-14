@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Kasir, stok, dan kasbon warung sembako",
 };
 
-export const viewport: Viewport = { themeColor: "#1d5638" };
+export const viewport: Viewport = { themeColor: "#047857" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

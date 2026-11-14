@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { buildCategoryColors } from "./category-color";
 import { supabaseBrowser } from "./supabase/client";
 import { errorMessage } from "./format";
 import { PRODUCT_COLUMNS, type Category, type Product } from "./types";
@@ -50,7 +51,9 @@ export function useCatalog() {
   }, [version]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
-  return { products, categories, loading, error, reload };
+  /** Warna kotak inisial per kategori, sama di semua halaman. */
+  const colorOf = useMemo(() => buildCategoryColors(categories.map((c) => c.id)), [categories]);
+  return { products, categories, loading, error, reload, colorOf };
 }
 
 export const isLowStock = (p: Product) => p.stock <= p.min_stock;

@@ -59,7 +59,7 @@ function TransaksiContent() {
 
   return (
     <>
-      <PageHeader title="Transaksi" />
+      <PageHeader title="Transaksi" description="Riwayat penjualan per hari. Ketuk transaksi untuk melihat atau mencetak ulang struk." />
       <div className="mb-4 grid gap-3 sm:grid-cols-[auto_auto_1fr] sm:items-end">
         <div>
           <label htmlFor="tgl" className="label">
@@ -101,21 +101,31 @@ function TransaksiContent() {
       ) : sales.length === 0 ? (
         <Empty title="Tidak ada transaksi pada tanggal ini" />
       ) : (
-        <ul className="panel divide-y divide-dashed divide-line">
+        <ul className="panel divide-y divide-line">
           {sales.map((s) => (
             <li key={s.id}>
               <button
                 type="button"
                 onClick={() => setOpenId(s.id)}
-                className="grid w-full gap-1 px-4 py-3 text-left hover:bg-paper sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-center"
+                className="grid w-full gap-1 px-4 py-3 text-left hover:bg-canvas sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-center"
               >
                 <span>
                   <span className="block font-semibold">{s.invoice_no}</span>
-                  <span className="block text-xs text-ink-soft">{dateTime(s.created_at)}</span>
+                  <span className="block text-xs text-muted">{dateTime(s.created_at)}</span>
                 </span>
                 <span className="text-sm">{METHOD_LABEL[s.payment_method]}</span>
-                <span className={`text-sm font-semibold ${s.status === "paid" ? "text-green" : s.status === "pending" ? "" : "text-brick"}`}>
-                  {STATUS_LABEL[s.status]}
+                <span>
+                  <span
+                    className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold ${
+                      s.status === "paid"
+                        ? "bg-primary-soft text-primary"
+                        : s.status === "pending"
+                          ? "bg-[#fff4d6] text-[#7a4b00]"
+                          : "bg-danger-soft text-danger"
+                    }`}
+                  >
+                    {STATUS_LABEL[s.status]}
+                  </span>
                 </span>
                 <span className="font-extrabold sm:text-right">{rupiah(s.total)}</span>
               </button>

@@ -235,7 +235,7 @@ export function ProductForm({
               <option key={u} value={u} />
             ))}
           </datalist>
-          <p id="p-base-help" className="mt-1 text-xs text-ink-soft">
+          <p id="p-base-help" className="mt-1 text-xs text-muted">
             Satuan terkecil yang dihitung. Rokok: batang. Bensin: liter. Beras curah: gram.
           </p>
         </div>
@@ -249,23 +249,23 @@ export function ProductForm({
 
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" className="size-5 accent-green" checked={allowDecimal} onChange={(e) => setAllowDecimal(e.target.checked)} />
+          <input type="checkbox" className="size-5 accent-primary" checked={allowDecimal} onChange={(e) => setAllowDecimal(e.target.checked)} />
           Boleh jual pecahan / per nominal (bensin, curah)
         </label>
         <label className="flex min-h-11 items-center gap-2">
-          <input type="checkbox" className="size-5 accent-green" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <input type="checkbox" className="size-5 accent-primary" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           Aktif dijual
         </label>
       </div>
 
-      <fieldset className="perforated rounded-lg border-2 p-3">
+      <fieldset className="rounded-2xl border border-line bg-canvas/60 p-4">
         <legend className="px-1 font-bold">Satuan jual & harga</legend>
-        <p className="mb-3 text-sm text-ink-soft">
+        <p className="mb-3 text-sm text-muted">
           &quot;Isi&quot; = berapa {baseUnit || "satuan dasar"} dalam satu satuan jual. Contoh rokok: Batang 1, Bungkus 16, Slop 160.
         </p>
         <ul className="space-y-3">
           {units.map((u, i) => (
-            <li key={u.key} className="rounded-lg border border-line bg-paper p-3">
+            <li key={u.key} className="rounded-xl border border-line bg-surface p-4 shadow-card">
               <div className="grid gap-3 sm:grid-cols-[1.4fr_0.8fr_1fr]">
                 <div>
                   <label className="label" htmlFor={`un-${u.key}`}>
@@ -362,7 +362,7 @@ export function ProductForm({
                   <input
                     type="radio"
                     name="default-unit"
-                    className="size-5 accent-green"
+                    className="size-5 accent-primary"
                     checked={u.is_default}
                     onChange={() => patch(u.key, { is_default: true })}
                   />
@@ -386,7 +386,7 @@ export function ProductForm({
       </fieldset>
 
       {error && (
-        <p role="alert" className="font-semibold text-brick">
+        <p role="alert" className="font-semibold text-danger">
           {error}
         </p>
       )}

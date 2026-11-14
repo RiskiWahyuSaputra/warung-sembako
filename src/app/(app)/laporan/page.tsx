@@ -77,7 +77,7 @@ function LaporanContent() {
 
   return (
     <>
-      <PageHeader title="Laporan" />
+      <PageHeader title="Laporan" description="Penjualan lunas dan laba kotor pada rentang tanggal yang dipilih." />
       <div className="mb-5 flex flex-wrap items-end gap-3">
         <div className="flex flex-wrap gap-2" role="group" aria-label="Rentang cepat">
           {PRESETS.map((p) => {
@@ -117,21 +117,22 @@ function LaporanContent() {
       ) : (
         <div className="space-y-6">
           {/* Laba kotor jadi titik fokus: itu yang paling ingin diketahui pemilik warung */}
-          <section aria-label="Ringkasan" className="panel receipt-edge grid gap-4 p-5 sm:grid-cols-[1.4fr_1fr_1fr]">
-            <div>
-              <p className="text-sm font-semibold text-ink-soft">Laba kotor</p>
-              <p className={`text-4xl font-extrabold ${laba < 0 ? "text-brick" : "text-green"}`}>{rupiah(laba)}</p>
-              <p className="mt-1 text-sm text-ink-soft">Omzet dikurangi harga modal barang terjual</p>
+          <section aria-label="Ringkasan" className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]">
+            {/* Laba kotor jadi titik fokus (kartu gelap): itu yang paling ingin diketahui pemilik */}
+            <div className="rounded-2xl bg-ink p-6 text-white shadow-card">
+              <p className="text-sm font-semibold text-white/75">Laba kotor</p>
+              <p className={`mt-1 text-4xl font-extrabold tracking-tight ${laba < 0 ? "text-[#ffb3b3]" : "text-[#86efac]"}`}>{rupiah(laba)}</p>
+              <p className="mt-2 text-sm text-white/75">Omzet dikurangi harga modal barang terjual</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-ink-soft">Omzet</p>
-              <p className="text-2xl font-extrabold">{rupiah(report.omzet)}</p>
-              <p className="text-sm text-ink-soft">{report.transaksi} transaksi lunas</p>
+            <div className="panel p-6">
+              <p className="text-sm font-semibold text-muted">Omzet</p>
+              <p className="mt-1 text-2xl font-extrabold">{rupiah(report.omzet)}</p>
+              <p className="mt-2 text-sm text-muted">{report.transaksi} transaksi lunas</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-ink-soft">Kasbon belum dibayar</p>
-              <p className="text-2xl font-extrabold text-brick">{rupiah(report.kasbon_beredar)}</p>
-              <p className="text-sm text-ink-soft">semua pelanggan, saat ini</p>
+            <div className="panel p-6">
+              <p className="text-sm font-semibold text-muted">Kasbon belum dibayar</p>
+              <p className="mt-1 text-2xl font-extrabold text-danger">{rupiah(report.kasbon_beredar)}</p>
+              <p className="mt-2 text-sm text-muted">Semua pelanggan, saat ini</p>
             </div>
           </section>
 
@@ -139,11 +140,11 @@ function LaporanContent() {
             <Empty title="Belum ada penjualan lunas di rentang ini" />
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-              <section aria-labelledby="metode" className="panel p-4">
+              <section aria-labelledby="metode" className="panel p-5">
                 <h2 id="metode" className="mb-2 font-extrabold">
                   Per cara bayar
                 </h2>
-                <ul className="divide-y divide-dashed divide-line">
+                <ul className="divide-y divide-line">
                   {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((m) => (
                     <li key={m} className="flex justify-between py-2">
                       <span>{METHOD_LABEL[m]}</span>
@@ -154,13 +155,13 @@ function LaporanContent() {
                 <h2 className="mt-5 mb-2 font-extrabold">Per hari</h2>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-ink-soft">
+                    <tr className="text-left text-muted">
                       <th scope="col" className="py-1 font-semibold">Tanggal</th>
                       <th scope="col" className="py-1 text-right font-semibold">Omzet</th>
                       <th scope="col" className="py-1 text-right font-semibold">Laba</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-dashed divide-line">
+                  <tbody className="divide-y divide-line">
                     {report.harian.map((d) => (
                       <tr key={d.tanggal}>
                         <td className="py-2">
@@ -174,33 +175,33 @@ function LaporanContent() {
                 </table>
               </section>
 
-              <section aria-labelledby="terlaris" className="panel min-w-0 p-4">
+              <section aria-labelledby="terlaris" className="panel min-w-0 p-5">
                 <h2 id="terlaris" className="mb-2 font-extrabold">
                   10 barang terlaris
                 </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[420px] text-sm">
                     <thead>
-                      <tr className="text-left text-ink-soft">
+                      <tr className="text-left text-muted">
                         <th scope="col" className="py-1 font-semibold">Barang</th>
                         <th scope="col" className="py-1 text-right font-semibold">Terjual</th>
                         <th scope="col" className="py-1 text-right font-semibold">Omzet</th>
                         <th scope="col" className="py-1 text-right font-semibold">Laba</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-dashed divide-line">
+                    <tbody className="divide-y divide-line">
                       {report.terlaris.map((t) => (
                         <tr key={t.product_name}>
                           <td className="py-2 pr-2">{t.product_name}</td>
                           <td className="py-2 text-right">{qty(t.qty_dasar)}</td>
                           <td className="py-2 text-right">{rupiah(t.omzet)}</td>
-                          <td className={`py-2 text-right font-semibold ${Number(t.laba) < 0 ? "text-brick" : ""}`}>{rupiah(t.laba)}</td>
+                          <td className={`py-2 text-right font-semibold ${Number(t.laba) < 0 ? "text-danger" : ""}`}>{rupiah(t.laba)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-2 text-xs text-ink-soft">Terjual dalam satuan dasar stok (batang, liter, gram, pcs).</p>
+                <p className="mt-2 text-xs text-muted">Terjual dalam satuan dasar stok (batang, liter, gram, pcs).</p>
               </section>
             </div>
           )}

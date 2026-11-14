@@ -66,7 +66,7 @@ function PelangganContent() {
 
   return (
     <>
-      <PageHeader title="Kasbon pelanggan">
+      <PageHeader title="Kasbon pelanggan" description="Utang belanja pelanggan langganan dan pembayarannya.">
         <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
           Tambah pelanggan
         </button>
@@ -74,7 +74,7 @@ function PelangganContent() {
 
       {customers && (
         <p className="mb-4 text-lg">
-          Total kasbon belum dibayar: <span className="font-extrabold text-brick">{rupiah(outstanding)}</span>
+          Total kasbon belum dibayar: <span className="font-extrabold text-danger">{rupiah(outstanding)}</span>
         </p>
       )}
 
@@ -86,7 +86,7 @@ function PelangganContent() {
           <input id="cari-pel" type="search" className="field" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <label className="flex min-h-11 items-center gap-2 self-end font-semibold">
-          <input type="checkbox" className="size-5 accent-green" checked={debtOnly} onChange={(e) => setDebtOnly(e.target.checked)} />
+          <input type="checkbox" className="size-5 accent-primary" checked={debtOnly} onChange={(e) => setDebtOnly(e.target.checked)} />
           Hanya yang masih berutang
         </label>
       </div>
@@ -100,19 +100,28 @@ function PelangganContent() {
       ) : shown.length === 0 ? (
         <Empty title={debtOnly ? "Tidak ada kasbon yang belum dibayar" : "Tidak ada nama yang cocok"} />
       ) : (
-        <ul className="panel divide-y divide-dashed divide-line">
+        <ul className="panel divide-y divide-line">
           {shown.map((c) => (
             <li key={c.id}>
               <button
                 type="button"
-                className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-paper"
+                className="flex min-h-16 w-full items-center justify-between gap-3 px-5 py-3 text-left transition-colors hover:bg-canvas"
                 onClick={() => setSelected(c)}
               >
-                <span className="min-w-0">
-                  <span className="block font-semibold break-words">{c.name}</span>
-                  {c.phone && <span className="block text-sm text-ink-soft">{c.phone}</span>}
+                <span className="flex min-w-0 items-center gap-3">
+                  <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft font-extrabold text-primary">
+                    {c.name.trim()[0]?.toUpperCase()}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold break-words">{c.name}</span>
+                    <span className="block text-sm text-muted">{c.phone || "Tanpa nomor HP"}</span>
+                  </span>
                 </span>
-                <span className={`shrink-0 font-bold ${c.debt_balance > 0 ? "text-brick" : "text-ink-soft"}`}>
+                <span
+                  className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold ${
+                    c.debt_balance > 0 ? "bg-danger-soft text-danger" : "bg-primary-soft text-primary"
+                  }`}
+                >
                   {c.debt_balance > 0 ? rupiah(c.debt_balance) : "Lunas"}
                 </span>
               </button>
@@ -176,7 +185,7 @@ function AddCustomer({ onSaved }: { onSaved: () => void }) {
         </label>
         <input id="c-phone" className="field" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
       </div>
-      {error && <p role="alert" className="font-semibold text-brick">{error}</p>}
+      {error && <p role="alert" className="font-semibold text-danger">{error}</p>}
       <button type="submit" className="btn btn-primary w-full" disabled={busy}>
         {busy ? "Menyimpan…" : "Simpan pelanggan"}
       </button>
@@ -243,9 +252,9 @@ function CustomerDetail({ customer, onChanged }: { customer: Customer; onChanged
 
   return (
     <div className="space-y-5">
-      <div className="perforated flex flex-wrap items-baseline justify-between gap-2 rounded-lg border-2 p-4">
-        <span className="font-semibold">Sisa kasbon</span>
-        <span className={`text-3xl font-extrabold ${customer.debt_balance > 0 ? "text-brick" : "text-green"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-2xl bg-ink p-5 text-white">
+        <span className="font-semibold text-white/80">Sisa kasbon</span>
+        <span className={`text-3xl font-extrabold ${customer.debt_balance > 0 ? "text-[#ffb3b3]" : "text-[#86efac]"}`}>
           {rupiah(customer.debt_balance)}
         </span>
       </div>
@@ -270,7 +279,7 @@ function CustomerDetail({ customer, onChanged }: { customer: Customer; onChanged
               {busy ? "Menyimpan…" : "Simpan bayar"}
             </button>
           </div>
-          {payError && <p role="alert" className="font-semibold text-brick">{payError}</p>}
+          {payError && <p role="alert" className="font-semibold text-danger">{payError}</p>}
         </form>
       )}
 
@@ -289,18 +298,18 @@ function CustomerDetail({ customer, onChanged }: { customer: Customer; onChanged
         ) : !rows ? (
           <Loading />
         ) : rows.length === 0 ? (
-          <p className="text-ink-soft">Belum ada kasbon.</p>
+          <p className="text-muted">Belum ada kasbon.</p>
         ) : (
-          <ul className="max-h-72 divide-y divide-dashed divide-line overflow-y-auto">
+          <ul className="max-h-72 divide-y divide-line overflow-y-auto">
             {rows.map((r, i) => (
               <li key={i} className="flex justify-between gap-3 py-2">
                 <span className="min-w-0">
                   <span className="block font-semibold">{r.kind === "utang" ? "Belanja kasbon" : "Bayar"}</span>
-                  <span className="block text-xs text-ink-soft">
+                  <span className="block text-xs text-muted">
                     {r.label} · {dateTime(r.at)}
                   </span>
                 </span>
-                <span className={`shrink-0 font-bold ${r.kind === "utang" ? "text-brick" : "text-green"}`}>
+                <span className={`shrink-0 font-bold ${r.kind === "utang" ? "text-danger" : "text-primary"}`}>
                   {r.kind === "utang" ? "+" : "−"}
                   {rupiah(r.amount)}
                 </span>

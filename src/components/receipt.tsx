@@ -41,13 +41,13 @@ export function Receipt({ saleId }: { saleId: string }) {
   const { sale, items, customer } = data;
 
   return (
-    <div className="print-area receipt-edge mx-auto max-w-xs bg-card px-4 pt-4 pb-6 text-sm">
+    <div className="print-area mx-auto max-w-xs bg-surface px-4 pt-4 pb-6 text-sm">
       <p className="text-center text-base font-extrabold">{storeName}</p>
       {storeAddress && <p className="text-center text-xs">{storeAddress}</p>}
       <hr className="perforated my-3 border-t-2" />
       <p>{sale.invoice_no}</p>
       <p>{dateTime(sale.paid_at ?? sale.created_at)}</p>
-      {sale.status !== "paid" && <p className="font-bold text-brick">{STATUS_LABEL[sale.status]}</p>}
+      {sale.status !== "paid" && <p className="font-bold text-danger">{STATUS_LABEL[sale.status]}</p>}
       <hr className="perforated my-3 border-t-2" />
       <ul className="space-y-2">
         {items.map((it) => (

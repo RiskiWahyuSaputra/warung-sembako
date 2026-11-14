@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type SVGProps } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage, parseNumber, rupiah } from "@/lib/format";
 import type { Customer, PaymentMethod, Sale } from "@/lib/types";
+import { IconKasbon, IconQris, IconTunai } from "./icons";
 import { Receipt } from "./receipt";
 
 export type SaleLinePayload = { unit_id: string; qty: number } | { unit_id: string; amount: number };
@@ -13,6 +14,12 @@ type Stage =
   | { kind: "qris"; sale: Sale; qrUrl: string | null; snapToken: string | null; expiresAt: number; error: string | null }
   | { kind: "done"; saleId: string };
 
+const METHODS: { id: PaymentMethod; label: string; hint: string; icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
+  { id: "cash", label: "Tunai", hint: "Uang pas / kembalian", icon: IconTunai },
+  { id: "qris", label: "QRIS", hint: "Scan e-wallet / m-banking", icon: IconQris },
+  { id: "kasbon", label: "Kasbon", hint: "Dicatat sebagai utang", icon: IconKasbon },
+];
+
 /** Pecahan uang yang biasa diterima, untuk tombol cepat. */
 function quickCash(total: number) {
   const options = new Set<number>([total]);
@@ -20,7 +27,7 @@ function quickCash(total: number) {
     const v = Math.ceil(total / step) * step;
     if (v > total) options.add(v);
   }
-  return [...options].sort((a, b) => a - b).slice(0, 5);
+  return [...options].sort((a, b) => a - b).slice(0, 6);
 }
 
 export function Checkout({
@@ -93,18 +100,28 @@ export function Checkout({
 
   if (stage.kind === "done") {
     return (
-      <div>
-        <p role="status" className="mb-3 rounded-lg bg-green-tint p-3 text-center font-bold text-green">
-          Transaksi lunas
-        </p>
-        <Receipt saleId={stage.saleId} />
-        <div className="no-print mt-6 grid grid-cols-2 gap-2">
-          <button type="button" className="btn btn-ghost" onClick={() => window.print()}>
-            Cetak struk
-          </button>
-          <button type="button" className="btn btn-primary" onClick={onFinished} autoFocus>
-            Transaksi baru
-          </button>
+      <div className="grid gap-6 sm:grid-cols-[1fr_1.1fr] sm:items-start">
+        <div className="text-center sm:pt-6 sm:text-left">
+          <span aria-hidden="true" className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-primary-soft text-primary sm:mx-0">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9.5 16.2 5.3 12l-1.8 1.8 6 6L21 8.3l-1.8-1.8z" />
+            </svg>
+          </span>
+          <p role="status" className="text-2xl font-extrabold">
+            Transaksi lunas
+          </p>
+          <p className="mt-1 text-muted">Stok sudah diperbarui. Cetak struk bila pelanggan minta.</p>
+          <div className="no-print mt-6 grid gap-2">
+            <button type="button" className="btn btn-primary min-h-12" onClick={onFinished} autoFocus>
+              Transaksi baru
+            </button>
+            <button type="button" className="btn btn-ghost min-h-12" onClick={() => window.print()}>
+              Cetak struk
+            </button>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-canvas p-4">
+          <Receipt saleId={stage.saleId} />
         </div>
       </div>
     );
@@ -115,36 +132,41 @@ export function Checkout({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <div className="perforated flex items-baseline justify-between rounded-lg border-2 p-4">
-        <span className="font-semibold">Total belanja</span>
-        <span className="text-3xl font-extrabold text-brick">{rupiah(total)}</span>
+    <form onSubmit={submit} className="space-y-6">
+      <div className="flex items-center justify-between rounded-2xl bg-ink px-5 py-4 text-white">
+        <span className="font-semibold text-white/80">Total belanja</span>
+        <span className="text-3xl font-extrabold tracking-tight">{rupiah(total)}</span>
       </div>
 
       <fieldset>
         <legend className="label">Cara bayar</legend>
-        <div className="grid grid-cols-3 gap-2">
-          {(["cash", "qris", "kasbon"] as const).map((m) => (
-            <label
-              key={m}
-              className={`flex min-h-12 items-center justify-center rounded-lg border-2 font-bold has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-[var(--focus)] ${
-                method === m ? "border-green bg-green-tint text-green" : "border-line bg-card hover:border-ink-soft"
-              }`}
-            >
-              <input
-                type="radio"
-                name="method"
-                value={m}
-                className="sr-only"
-                checked={method === m}
-                onChange={() => {
-                  setMethod(m);
-                  setError(null);
-                }}
-              />
-              {m === "cash" ? "Tunai" : m === "qris" ? "QRIS" : "Kasbon"}
-            </label>
-          ))}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {METHODS.map((m) => {
+            const on = method === m.id;
+            return (
+              <label
+                key={m.id}
+                className={`flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 p-2 text-center transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)] has-[:focus-visible]:outline ${
+                  on ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface hover:border-[#cfd4dc]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="method"
+                  value={m.id}
+                  className="sr-only"
+                  checked={on}
+                  onChange={() => {
+                    setMethod(m.id);
+                    setError(null);
+                  }}
+                />
+                <m.icon width={26} height={26} />
+                <span className="font-extrabold">{m.label}</span>
+                <span className={`hidden text-xs sm:block ${on ? "text-primary" : "text-muted"}`}>{m.hint}</span>
+              </label>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -153,45 +175,53 @@ export function Checkout({
           <label htmlFor="cash" className="label">
             Uang diterima
           </label>
-          <input
-            id="cash"
-            className="field text-xl font-bold"
-            inputMode="numeric"
-            autoFocus
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg font-bold text-muted">Rp</span>
+            <input
+              id="cash"
+              className="field h-14 pl-12 text-2xl font-extrabold"
+              inputMode="numeric"
+              autoFocus
+              placeholder="0"
+              value={cash}
+              onChange={(e) => setCash(e.target.value)}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
             {quickCash(total).map((v) => (
-              <button key={v} type="button" className="btn btn-ghost min-h-10 text-sm" onClick={() => setCash(String(v))}>
+              <button key={v} type="button" className="btn btn-ghost min-h-11 px-2 text-sm" onClick={() => setCash(String(v))}>
                 {v === total ? "Uang pas" : rupiah(v)}
               </button>
             ))}
           </div>
-          <p className="mt-3 flex justify-between text-lg">
-            <span>Kembalian</span>
-            <span className={`font-extrabold ${change !== null && change < 0 ? "text-brick" : ""}`}>
+          <div
+            className={`mt-4 flex items-center justify-between rounded-xl px-4 py-3 ${
+              change !== null && change < 0 ? "bg-danger-soft text-danger" : "bg-primary-soft text-primary"
+            }`}
+          >
+            <span className="font-semibold">Kembalian</span>
+            <span className="text-2xl font-extrabold">
               {change === null ? "-" : change < 0 ? `kurang ${rupiah(-change)}` : rupiah(change)}
             </span>
-          </p>
+          </div>
         </div>
       )}
 
       {method === "qris" && (
-        <p className="text-sm text-ink-soft">
-          QR Midtrans akan muncul di layar. Pelanggan scan dengan e-wallet atau m-banking, stok berkurang otomatis setelah
+        <div className="rounded-xl bg-canvas p-4 text-sm text-muted">
+          QR akan tampil di layar ini. Pelanggan scan dengan e-wallet atau m-banking, lalu stok berkurang otomatis setelah
           pembayaran masuk.
-        </p>
+        </div>
       )}
 
       {method === "kasbon" && <CustomerPicker value={customerId} onChange={setCustomerId} />}
 
       {error && (
-        <p role="alert" className="font-semibold text-brick">
+        <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger">
           {error}
         </p>
       )}
-      <button type="submit" className="btn btn-primary min-h-12 w-full text-lg" disabled={busy}>
+      <button type="submit" className="btn btn-primary min-h-14 w-full text-lg" disabled={busy}>
         {busy ? "Memproses…" : method === "qris" ? "Tampilkan QR" : method === "kasbon" ? "Catat sebagai kasbon" : "Selesaikan"}
       </button>
     </form>
@@ -242,15 +272,19 @@ function QrisWait({
   }
 
   const left = Math.max(0, Math.round((stage.expiresAt - now) / 1000));
+  const pct = Math.min(100, (left / (15 * 60)) * 100);
 
   if (status === "expired" || status === "cancelled") {
     return (
-      <div className="space-y-4 text-center">
-        <p role="status" className="font-bold text-brick">
-          {status === "expired" ? "QR kedaluwarsa, pembayaran tidak masuk." : "Pembayaran QRIS dibatalkan."}
+      <div className="mx-auto max-w-sm space-y-4 py-6 text-center">
+        <span aria-hidden="true" className="mx-auto grid size-14 place-items-center rounded-full bg-danger-soft text-2xl font-extrabold text-danger">
+          !
+        </span>
+        <p role="status" className="text-xl font-extrabold">
+          {status === "expired" ? "QR kedaluwarsa" : "Pembayaran QRIS dibatalkan"}
         </p>
-        <p className="text-sm text-ink-soft">Keranjang masih tersimpan. Tutup lalu pilih cara bayar lain.</p>
-        <button type="button" className="btn btn-primary w-full" onClick={onClosed}>
+        <p className="text-muted">Keranjang masih tersimpan. Kembali lalu pilih cara bayar lain.</p>
+        <button type="button" className="btn btn-primary min-h-12 w-full" onClick={onClosed}>
           Kembali ke keranjang
         </button>
       </div>
@@ -258,27 +292,52 @@ function QrisWait({
   }
 
   return (
-    <div className="space-y-4 text-center">
-      <p className="text-sm text-ink-soft">{stage.sale.invoice_no}</p>
-      <p className="text-3xl font-extrabold text-brick">{rupiah(stage.sale.total)}</p>
-      {stage.qrUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- gambar QR dari server Midtrans, bukan aset lokal
-        <img src={stage.qrUrl} alt={`QRIS untuk membayar ${rupiah(stage.sale.total)}`} width={280} height={280} className="mx-auto rounded-lg border border-line bg-white p-2" />
-      ) : stage.snapToken ? (
-        <SnapEmbed token={stage.snapToken} />
-      ) : null}
-      {error ? (
-        <p role="alert" className="font-semibold text-brick">
-          {error}
-        </p>
-      ) : (
-        <p role="status" className="font-semibold">
-          Menunggu pembayaran… sisa {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
-        </p>
-      )}
-      <button type="button" className="btn btn-danger w-full" onClick={cancel} disabled={busy}>
-        {busy ? "Membatalkan…" : "Batalkan QRIS"}
-      </button>
+    <div className="grid gap-5 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+      <div>
+        {stage.snapToken ? (
+          <SnapEmbed token={stage.snapToken} />
+        ) : stage.qrUrl ? (
+          <div className="grid place-items-center rounded-2xl border border-line bg-white p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element -- gambar QR dari server Midtrans, bukan aset lokal */}
+            <img src={stage.qrUrl} alt={`QRIS untuk membayar ${rupiah(stage.sale.total)}`} width={300} height={300} />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <div className="rounded-2xl bg-ink p-5 text-white">
+          <p className="text-sm text-white/75">{stage.sale.invoice_no}</p>
+          <p className="mt-1 text-3xl font-extrabold tracking-tight">{rupiah(stage.sale.total)}</p>
+          {!error && (
+            <>
+              <p role="status" className="mt-4 flex items-center gap-2 text-sm font-semibold">
+                <span aria-hidden="true" className="size-2.5 animate-pulse rounded-full bg-accent" />
+                Menunggu pembayaran
+                <span className="ml-auto tabular-nums">
+                  {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
+                </span>
+              </p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/20" aria-hidden="true">
+                <div className="h-full rounded-full bg-accent transition-[width] duration-1000" style={{ width: `${pct}%` }} />
+              </div>
+            </>
+          )}
+        </div>
+        {error ? (
+          <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger">
+            {error}
+          </p>
+        ) : (
+          <ol className="space-y-2 text-sm text-muted">
+            <li>1. Pelanggan buka e-wallet atau m-banking, pilih Scan/QRIS.</li>
+            <li>2. Scan QR di layar ini dan bayar.</li>
+            <li>3. Layar berganti otomatis setelah pembayaran masuk.</li>
+          </ol>
+        )}
+        <button type="button" className="btn btn-danger mt-auto min-h-12 w-full" onClick={cancel} disabled={busy}>
+          {busy ? "Membatalkan…" : "Batalkan QRIS"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -320,48 +379,40 @@ function CustomerPicker({ value, onChange }: { value: string; onChange: (id: str
     setError(null);
   }
 
-  if (error && !customers) return <p role="alert" className="text-brick">Gagal memuat pelanggan: {error}</p>;
-  if (!customers) return <p role="status" className="text-ink-soft">Memuat pelanggan…</p>;
+  if (error && !customers) return <p role="alert" className="text-danger">Gagal memuat pelanggan: {error}</p>;
+  if (!customers) return <p role="status" className="text-muted">Memuat pelanggan…</p>;
 
   return (
     <div className="space-y-3">
-      <div>
-        <label htmlFor="cust-search" className="label">
-          Pelanggan
-        </label>
-        <input id="cust-search" type="search" className="field" placeholder="Cari nama" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <label htmlFor="cust-search" className="label">
+            Pelanggan
+          </label>
+          <input id="cust-search" type="search" className="field" placeholder="Cari nama" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        {!adding && (
+          <button type="button" className="btn btn-ghost" onClick={() => setAdding(true)}>
+            + Baru
+          </button>
+        )}
       </div>
-      {shown.length === 0 ? (
-        <p className="text-sm text-ink-soft">{customers.length ? "Tidak ada nama yang cocok." : "Belum ada pelanggan."}</p>
-      ) : (
-        <ul className="space-y-1" role="radiogroup" aria-label="Pilih pelanggan">
-          {shown.map((c) => (
-            <li key={c.id}>
-              <label
-                className={`flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 ${
-                  value === c.id ? "border-green bg-green-tint" : "border-line hover:border-ink-soft"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <input type="radio" name="customer" className="size-4 accent-green" checked={value === c.id} onChange={() => onChange(c.id)} />
-                  {c.name}
-                </span>
-                {Number(c.debt_balance) > 0 && <span className="text-sm text-brick">utang {rupiah(c.debt_balance)}</span>}
+      {adding && (
+        <div className="space-y-3 rounded-xl bg-canvas p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="new-cust" className="label">
+                Nama pelanggan baru
               </label>
-            </li>
-          ))}
-        </ul>
-      )}
-      {adding ? (
-        <div className="space-y-2 rounded-lg border border-line p-3">
-          <label htmlFor="new-cust" className="label">
-            Nama pelanggan baru
-          </label>
-          <input id="new-cust" className="field" value={newName} onChange={(e) => setNewName(e.target.value)} />
-          <label htmlFor="new-phone" className="label">
-            No. HP (opsional)
-          </label>
-          <input id="new-phone" className="field" inputMode="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+              <input id="new-cust" className="field" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="new-phone" className="label">
+                No. HP (opsional)
+              </label>
+              <input id="new-phone" className="field" inputMode="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+            </div>
+          </div>
           <div className="flex gap-2">
             <button type="button" className="btn btn-primary" onClick={add}>
               Simpan pelanggan
@@ -370,12 +421,34 @@ function CustomerPicker({ value, onChange }: { value: string; onChange: (id: str
               Batal
             </button>
           </div>
-          {error && <p role="alert" className="text-sm text-brick">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         </div>
+      )}
+      {shown.length === 0 ? (
+        <p className="text-sm text-muted">{customers.length ? "Tidak ada nama yang cocok." : "Belum ada pelanggan."}</p>
       ) : (
-        <button type="button" className="btn btn-ghost" onClick={() => setAdding(true)}>
-          Pelanggan baru
-        </button>
+        <ul className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Pilih pelanggan">
+          {shown.map((c) => (
+            <li key={c.id}>
+              <label
+                className={`flex min-h-14 items-center gap-3 rounded-xl border-2 px-3 py-2 ${
+                  value === c.id ? "border-primary bg-primary-soft" : "border-line hover:border-[#cfd4dc]"
+                }`}
+              >
+                <input type="radio" name="customer" className="sr-only" checked={value === c.id} onChange={() => onChange(c.id)} />
+                <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-sm font-extrabold text-primary shadow-card">
+                  {c.name.trim()[0]?.toUpperCase()}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{c.name}</span>
+                  <span className={`block text-xs ${Number(c.debt_balance) > 0 ? "font-semibold text-danger" : "text-muted"}`}>
+                    {Number(c.debt_balance) > 0 ? `Utang ${rupiah(c.debt_balance)}` : "Tidak ada utang"}
+                  </span>
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -412,28 +485,64 @@ function loadSnap(): Promise<void> {
 /** Halaman QRIS Snap ditanam di dialog kasir. Status lunas tetap dicek lewat server. */
 function SnapEmbed({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<"loading" | "shown" | "closed">("loading");
+  const [round, setRound] = useState(0);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let observer: MutationObserver | undefined;
     loadSnap()
       .then(() => {
-        if (cancelled || !window.snap) return;
+        if (cancelled || !window.snap || !boxRef.current) return;
+        // Semua handler wajib diisi: tanpa handler, Snap memindahkan seluruh halaman kasir
+        // ke "Finish Redirect URL" di dashboard Midtrans. Status lunas tetap dicek lewat server.
         window.snap.embed(token, {
           embedId: "snap-embed",
+          onSuccess: () => {},
+          onPending: () => {},
+          onClose: () => !cancelled && setState("closed"),
           onError: () => setError("Midtrans gagal menampilkan QRIS. Batalkan lalu coba lagi."),
         });
+        setState("shown");
+        // Tombol tutup bawaan Snap menghapus iframe-nya tanpa memanggil callback apa pun.
+        observer = new MutationObserver(() => {
+          if (!boxRef.current?.querySelector("iframe")) setState("closed");
+        });
+        observer.observe(boxRef.current, { childList: true, subtree: true });
       })
       .catch((e: Error) => !cancelled && setError(e.message));
     return () => {
       cancelled = true;
+      observer?.disconnect();
     };
-  }, [token]);
+  }, [token, round]);
+
+  function showAgain() {
+    if (boxRef.current) boxRef.current.innerHTML = "";
+    setState("loading");
+    setRound((r) => r + 1);
+  }
 
   return (
     <div>
-      <div id="snap-embed" className="mx-auto min-h-[520px] w-full overflow-hidden rounded-lg border border-line bg-white" />
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-white">
+        {state === "loading" && !error && (
+          <div className="absolute inset-0 grid place-items-center text-sm text-muted">Memuat QRIS…</div>
+        )}
+        {state === "closed" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <p className="font-semibold">Tampilan QR tertutup</p>
+            <p className="text-sm text-muted">Tagihan masih aktif. Tampilkan lagi untuk pelanggan, atau tekan “Batalkan QRIS”.</p>
+            <button type="button" className="btn btn-primary" onClick={showAgain}>
+              Tampilkan QR lagi
+            </button>
+          </div>
+        )}
+        <div id="snap-embed" ref={boxRef} className="h-[560px] w-full" />
+      </div>
       {error && (
-        <p role="alert" className="mt-2 font-semibold text-brick">
+        <p role="alert" className="mt-2 font-semibold text-danger">
           {error}
         </p>
       )}

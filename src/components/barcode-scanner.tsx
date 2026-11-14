@@ -85,16 +85,16 @@ export function BarcodeScanner({
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-ink">
         <video ref={videoRef} className="h-full w-full object-cover" muted playsInline width={640} height={480} />
         {status === "scanning" && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-1/2 bg-brick" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-1/2 bg-danger" />
         )}
       </div>
-      <p role="status" className="mt-2 text-sm text-ink-soft">
+      <p role="status" className="mt-2 text-sm text-muted">
         {status === "starting" && "Membuka kamera…"}
         {status === "scanning" &&
           (lastCode ? `Terbaca: ${lastCode}` : "Arahkan barcode ke garis merah, jarak sekitar 15 cm.")}
       </p>
       {status === "error" && (
-        <p role="alert" className="mt-2 text-sm font-semibold text-brick">
+        <p role="alert" className="mt-2 text-sm font-semibold text-danger">
           {error}
         </p>
       )}
