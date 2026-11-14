@@ -57,4 +57,4 @@ Buka http://localhost:3000 dan masuk dengan akun pemilik.
   Pasang printer Bluetooth/USB sebagai printer di sistem operasi.
 - **Stok** disimpan dalam satuan dasar (batang, liter, gram, pcs). Semua perubahan stok tercatat di `stock_movements`.
 - **Keamanan**: penjualan, stok, dan kasbon hanya bisa diubah lewat fungsi database (RPC), bukan langsung dari browser.
-  `SUPABASE_SERVICE_ROLE_KEY` dan `MIDTRANS_SERVER_KEY` hanya dipakai di server; jangan beri awalan `NEXT_PUBLIC_`.
+  `SUPABASE_SECRET_KEY` dan `MIDTRANS_SERVER_KEY` hanya dipakai di server; jangan beri awalan `NEXT_PUBLIC_`.

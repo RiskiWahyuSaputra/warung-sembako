@@ -2,13 +2,14 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabaseSecretKey } from "./env";
 
 /** Klien atas nama pengguna yang login (RLS berlaku). */
 export async function supabaseServer() {
   const cookieStore = await cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
@@ -24,11 +25,9 @@ export async function supabaseServer() {
   );
 }
 
-/** Klien service role, melewati RLS. Hanya untuk konfirmasi pembayaran dari Midtrans. */
+/** Klien secret key, melewati RLS. Hanya untuk konfirmasi pembayaran dari Midtrans. */
 export function supabaseAdmin() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.local");
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+  return createClient(SUPABASE_URL, supabaseSecretKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
