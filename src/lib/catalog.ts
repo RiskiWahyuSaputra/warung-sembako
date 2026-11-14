@@ -18,7 +18,11 @@ export function useCatalog() {
     (async () => {
       const sb = supabaseBrowser();
       const [p, c] = await Promise.all([
-        sb.from("products").select(`${PRODUCT_COLUMNS}, product_units(*)`).order("name"),
+        // product_units punya 2 relasi ke products (product_id & returns_product_id): sebut yang dimaksud.
+        sb
+          .from("products")
+          .select(`${PRODUCT_COLUMNS}, product_units!product_units_product_id_fkey(*)`)
+          .order("name"),
         sb.from("categories").select("id, name").order("name"),
       ]);
       if (cancelled) return;
