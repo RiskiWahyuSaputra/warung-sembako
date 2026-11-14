@@ -1,26 +1,195 @@
 @import "tailwindcss";
 
+/*
+  Arah desain (alasan tiap keputusan):
+  - Kertas krem + tinta cokelat tua: meniru nota/buku warung, lebih hangat dari putih polos.
+  - Hijau tua (--green): satu warna aksi utama (bayar, simpan). Tidak bentrok dengan merah.
+  - Merah bata (--brick): SATU aksen, hanya untuk total belanja, stok menipis, dan kasbon.
+  - Garis putus-putus (.perforated): motif struk, dipakai berulang di keranjang, struk, dan pemisah daftar.
+  - Tema terang tetap: kasir warung sering bekerja di tempat terang/semi-terbuka; latar gelap sulit dibaca di sana.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f6f0e3;
+  --card: #fffdf7;
+  --ink: #2a2017;
+  --ink-soft: #62544a; /* 6.4:1 di atas --paper */
+  --line: #ddd1bb;
+  --green: #1d5638;
+  --green-hover: #164229;
+  --green-tint: #e3eee6;
+  --brick: #9c3a22; /* 6.2:1 di atas --card */
+  --brick-tint: #f7e4dc;
+  --focus: #b06a00;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-green: var(--green);
+  --color-green-hover: var(--green-hover);
+  --color-green-tint: var(--green-tint);
+  --color-brick: var(--brick);
+  --color-brick-tint: var(--brick-tint);
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1; /* angka tabular: kolom harga rata */
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .perforated {
+    border-style: dashed;
+    border-color: var(--line);
+  }
+
+  /* Tepi bergerigi seperti kertas struk yang disobek */
+  .receipt-edge {
+    position: relative;
+  }
+  .receipt-edge::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -8px;
+    height: 8px;
+    background: linear-gradient(-45deg, transparent 6px, var(--card) 0) 0 0 / 12px 8px repeat-x,
+      linear-gradient(45deg, transparent 6px, var(--card) 0) 0 0 / 12px 8px repeat-x;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 120ms, border-color 120ms, transform 80ms;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--green-hover);
+  }
+  .btn-ghost {
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--ink-soft);
+  }
+  .btn-danger {
+    background: var(--card);
+    border: 1px solid var(--brick);
+    color: var(--brick);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--brick-tint);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--ink);
+  }
+  .field:hover:not(:disabled) {
+    border-color: var(--ink-soft);
+  }
+  .field::placeholder {
+    color: var(--ink-soft);
+  }
+  .label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Cetak struk printer thermal 58mm: hanya elemen .print-area yang dicetak */
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 58mm;
+    padding: 2mm;
+    font-size: 10px;
+    color: #000;
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
 }
