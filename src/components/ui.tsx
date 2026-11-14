@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { initials } from "@/lib/category-color";
+import { productImageUrl } from "@/lib/product-image";
 
 /** Status data: memuat, gagal, atau kosong. Semua halaman data memakai ini. */
 export function Loading({ label = "Memuat data…" }: { label?: string }) {
@@ -107,5 +109,38 @@ export function InitialTile({ text, bg, fg, size = "md" }: { text: string; bg: s
     <span aria-hidden="true" className={`grid shrink-0 place-items-center font-extrabold ${cls}`} style={{ background: bg, color: fg }}>
       {text}
     </span>
+  );
+}
+
+const THUMB = { sm: "size-9 rounded-lg", md: "size-11 rounded-xl", lg: "size-14 rounded-xl" } as const;
+const THUMB_PX = { sm: 36, md: 44, lg: 56 } as const;
+
+/**
+ * Foto barang kecil; jatuh ke kotak inisial berwarna kategori kalau belum ada foto.
+ * alt kosong: nama barang selalu tertulis di sebelahnya.
+ */
+export function ProductThumb({
+  imagePath,
+  name,
+  color,
+  size = "md",
+}: {
+  imagePath: string | null;
+  name: string;
+  color: { bg: string; fg: string };
+  size?: keyof typeof THUMB;
+}) {
+  const url = productImageUrl(imagePath);
+  if (!url) return <InitialTile text={initials(name)} bg={color.bg} fg={color.fg} size={size} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- foto dari Supabase Storage, sudah dikecilkan saat unggah
+    <img
+      src={url}
+      alt=""
+      width={THUMB_PX[size]}
+      height={THUMB_PX[size]}
+      loading="lazy"
+      className={`shrink-0 border border-line bg-canvas object-cover ${THUMB[size]}`}
+    />
   );
 }

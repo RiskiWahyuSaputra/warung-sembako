@@ -17,7 +17,7 @@ export type ProductUnit = {
 
 /** Kolom yang boleh dibaca semua pengguna (harga modal tidak termasuk). */
 export const PRODUCT_COLUMNS =
-  "id, name, category_id, base_unit, allow_decimal, stock, min_stock, is_active, created_at";
+  "id, name, category_id, base_unit, allow_decimal, stock, min_stock, is_active, image_path, created_at";
 
 export type Product = {
   id: string;
@@ -28,6 +28,8 @@ export type Product = {
   stock: number;
   min_stock: number;
   is_active: boolean;
+  /** Path foto di bucket storage "product-images", null jika belum ada foto. */
+  image_path: string | null;
   created_at: string;
   product_units?: ProductUnit[];
 };

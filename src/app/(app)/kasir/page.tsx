@@ -5,7 +5,8 @@ import { BarcodeScanner } from "@/components/barcode-scanner";
 import { Checkout, type SaleLinePayload } from "@/components/checkout";
 import { IconBarang, IconCari, IconHapus, IconKamera, IconKurang, IconTambah } from "@/components/icons";
 import { RequireProfile } from "@/components/shell";
-import { Empty, ErrorBox, InitialTile, Loading, Modal } from "@/components/ui";
+import { Empty, ErrorBox, Loading, Modal, ProductThumb } from "@/components/ui";
+import { productImageUrl } from "@/lib/product-image";
 import { useCatalog } from "@/lib/catalog";
 import { initials, type TileColor } from "@/lib/category-color";
 import { parseNumber, qty, rupiah } from "@/lib/format";
@@ -285,7 +286,7 @@ function KasirContent() {
                       out ? "opacity-60" : ""
                     }`}
                   >
-                    <InitialTile text={initials(p.name)} bg={color.bg} fg={color.fg} />
+                    <ProductPhoto name={p.name} imagePath={p.image_path} color={color} />
                     <span className="line-clamp-2 min-h-10 leading-snug font-semibold break-words">{p.name}</span>
                     <span className="mt-auto">
                       <span className="block text-lg font-extrabold">{rupiah(u.price)}</span>
@@ -404,7 +405,7 @@ function CartPanel({
               return (
                 <li key={l.key} className="py-4">
                   <div className="flex items-start gap-3">
-                    <InitialTile text={initials(l.product.name)} bg={color.bg} fg={color.fg} size="sm" />
+                    <ProductThumb imagePath={l.product.image_path} name={l.product.name} color={color} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="leading-snug font-semibold break-words">{l.product.name}</p>
                       <p className="text-sm text-muted">
@@ -527,5 +528,24 @@ function CartPanel({
         </button>
       </div>
     </>
+  );
+}
+
+/** Area foto di kartu barang kasir; tanpa foto, inisial besar di atas warna kategori. */
+function ProductPhoto({ name, imagePath, color }: { name: string; imagePath: string | null; color: TileColor }) {
+  const url = productImageUrl(imagePath);
+  return (
+    <span
+      aria-hidden="true"
+      className="block aspect-[4/3] w-full overflow-hidden rounded-xl"
+      style={url ? undefined : { background: color.bg, color: color.fg }}
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- foto dari Supabase Storage, sudah dikecilkan saat unggah
+        <img src={url} alt="" width={320} height={240} loading="lazy" className="size-full bg-canvas object-cover" />
+      ) : (
+        <span className="grid size-full place-items-center text-3xl font-extrabold">{initials(name)}</span>
+      )}
+    </span>
   );
 }

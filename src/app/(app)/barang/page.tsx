@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ProductForm } from "@/components/product-form";
 import { RequireProfile, useProfile } from "@/components/shell";
 import { IconBarang, IconCari, IconHapus, IconTambah } from "@/components/icons";
-import { Empty, ErrorBox, InitialTile, Loading, Modal, PageHeader } from "@/components/ui";
-import { initials } from "@/lib/category-color";
+import { Empty, ErrorBox, Loading, Modal, PageHeader, ProductThumb } from "@/components/ui";
+import { removeProductImage } from "@/lib/product-image";
 import { isLowStock, useCatalog } from "@/lib/catalog";
 import { errorMessage, qty, rupiah } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -121,7 +121,7 @@ function BarangContent() {
               return (
                 <li key={p.id} className="grid gap-3 px-5 py-4 md:grid-cols-[2fr_1.1fr_2fr_auto] md:items-center md:gap-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <InitialTile text={initials(p.name)} bg={color.bg} fg={color.fg} />
+                    <ProductThumb imagePath={p.image_path} name={p.name} color={color} />
                     <div className="min-w-0">
                       <p className="font-bold break-words">
                         {p.name}
@@ -247,6 +247,7 @@ function DeleteProduct({
         "Database belum mengizinkan hapus barang. Jalankan supabase/update-001-hapus-barang.sql dan update-002-hapus-barang-terjual.sql di SQL Editor.",
       );
     }
+    await removeProductImage(product.image_path);
     onDone();
   }
 

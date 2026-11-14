@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage, parseNumber } from "@/lib/format";
 import type { Category, Product } from "@/lib/types";
+import { compressImage, productImageUrl, removeProductImage, uploadProductImage } from "@/lib/product-image";
 import { BarcodeScanner } from "./barcode-scanner";
+import { IconHapus, IconKamera } from "./icons";
+
+type ImageDraft = { kind: "keep" } | { kind: "new"; blob: Blob; preview: string } | { kind: "remove" };
 
 type UnitDraft = {
   key: string;
@@ -58,6 +62,32 @@ export function ProductForm({
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
   const [units, setUnits] = useState<UnitDraft[]>(() => draftFrom(product));
   const [scanFor, setScanFor] = useState<string | null>(null);
+  const [image, setImage] = useState<ImageDraft>({ kind: "keep" });
+  const [imageNote, setImageNote] = useState<string | null>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+
+  // Lepas URL pratinjau lama supaya memori browser tidak menumpuk.
+  useEffect(() => () => {
+    if (image.kind === "new") URL.revokeObjectURL(image.preview);
+  }, [image]);
+
+  const oldImagePath = product?.image_path ?? null;
+  const previewUrl = image.kind === "new" ? image.preview : image.kind === "keep" ? productImageUrl(oldImagePath) : null;
+
+  async function pickImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImageNote("Mengecilkan foto…");
+    try {
+      const blob = await compressImage(file);
+      setImage({ kind: "new", blob, preview: URL.createObjectURL(blob) });
+      setImageNote(`Siap diunggah (${Math.max(1, Math.round(blob.size / 1024))} KB)`);
+    } catch (err) {
+      setImageNote(errorMessage(err));
+    }
+  }
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -124,7 +154,13 @@ export function ProductForm({
         catId = data.id;
       }
 
+      // Foto diunggah dulu: kalau gagal, barang belum tersimpan sama sekali.
+      let imagePath = oldImagePath;
+      if (image.kind === "new") imagePath = await uploadProductImage(image.blob);
+      if (image.kind === "remove") imagePath = null;
+
       const row = {
+        image_path: imagePath,
         name: name.trim(),
         category_id: catId,
         base_unit: baseUnit.trim(),
@@ -170,6 +206,7 @@ export function ProductForm({
           : await sb.from("product_units").insert(data);
         if (error) throw error;
       }
+      if (oldImagePath && oldImagePath !== imagePath) await removeProductImage(oldImagePath);
       onSaved();
     } catch (err) {
       const msg = errorMessage(err);
@@ -181,6 +218,47 @@ export function ProductForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <div className="flex items-center gap-4">
+        <div className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-line bg-canvas text-center text-xs text-muted">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- pratinjau lokal / foto Supabase Storage
+            <img src={previewUrl} alt={`Foto ${name || "barang"}`} width={96} height={96} className="size-full object-cover" />
+          ) : (
+            <span className="px-2">Belum ada foto</span>
+          )}
+        </div>
+        <div className="min-w-0 space-y-2">
+          <p className="label mb-0">Foto barang</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-ghost min-h-10 text-sm" onClick={() => cameraRef.current?.click()}>
+              <IconKamera width={18} height={18} />
+              Foto
+            </button>
+            <button type="button" className="btn btn-ghost min-h-10 text-sm" onClick={() => galleryRef.current?.click()}>
+              Pilih file
+            </button>
+            {previewUrl && (
+              <button
+                type="button"
+                className="btn btn-danger btn-icon min-h-10 min-w-10"
+                aria-label="Hapus foto"
+                onClick={() => {
+                  setImage({ kind: "remove" });
+                  setImageNote(null);
+                }}
+              >
+                <IconHapus width={16} height={16} />
+              </button>
+            )}
+          </div>
+          <p role="status" className="text-xs text-muted">
+            {imageNote ?? "Opsional. Foto otomatis dikecilkan supaya hemat kuota."}
+          </p>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={pickImage} />
+          <input ref={galleryRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pickImage} />
+        </div>
+      </div>
+
       <div>
         <label className="label" htmlFor="p-name">
           Nama barang
