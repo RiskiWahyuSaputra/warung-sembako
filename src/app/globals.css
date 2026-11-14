@@ -98,7 +98,7 @@ body {
     padding: 0 1rem;
     border-radius: 8px;
     font-weight: 600;
-    transition: background-color 120ms, border-color 120ms, transform 80ms;
+    transition: background-color 120ms, border-color 120ms, color 120ms, transform 80ms;
   }
   .btn:active:not(:disabled) {
     transform: translateY(1px);

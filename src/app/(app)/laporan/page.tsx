@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { OwnerOnly } from "@/components/owner-only";
+import { RequireProfile } from "@/components/shell";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/ui";
 import { errorMessage, qty, rupiah, todayJakarta } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -31,9 +32,11 @@ const PRESETS = [
 
 export default function LaporanPage() {
   return (
-    <OwnerOnly>
-      <LaporanContent />
-    </OwnerOnly>
+    <RequireProfile>
+      <OwnerOnly>
+        <LaporanContent />
+      </OwnerOnly>
+    </RequireProfile>
   );
 }
 

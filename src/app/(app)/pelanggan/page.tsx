@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireProfile } from "@/components/shell";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Empty, ErrorBox, Loading, Modal, PageHeader } from "@/components/ui";
 import { dateTime, errorMessage, parseNumber, rupiah } from "@/lib/format";
@@ -18,6 +19,14 @@ function waNumber(phone: string | null) {
 }
 
 export default function PelangganPage() {
+  return (
+    <RequireProfile>
+      <PelangganContent />
+    </RequireProfile>
+  );
+}
+
+function PelangganContent() {
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);

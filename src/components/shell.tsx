@@ -2,17 +2,30 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { ErrorBox, Loading } from "./ui";
 
-const ProfileContext = createContext<Profile | null>(null);
+type ProfileState = { profile: Profile | null; error: string | null; retry: () => void };
+const ProfileContext = createContext<ProfileState | null>(null);
 
-export function useProfile() {
-  const p = useContext(ProfileContext);
-  if (!p) throw new Error("useProfile dipakai di luar Shell");
+/** Profil pengguna yang login. Hanya dipakai di dalam <RequireProfile>. */
+export function useProfile(): Profile {
+  const p = useContext(ProfileContext)?.profile;
+  if (!p) throw new Error("useProfile harus dipakai di dalam <RequireProfile>");
   return p;
+}
+
+/**
+ * Dipasang di setiap halaman: tampilkan "memuat"/error sampai profil siap, lalu isi halaman.
+ * Penundaan ada di dalam segmen halaman (bukan di layout) supaya halaman tetap ter-render.
+ */
+export function RequireProfile({ children }: { children: ReactNode }) {
+  const state = useContext(ProfileContext);
+  if (state?.error) return <ErrorBox message={state.error} onRetry={state.retry} />;
+  if (!state?.profile) return <Loading label="Menyiapkan kasir…" />;
+  return <>{children}</>;
 }
 
 const NAV: { href: string; label: string; ownerOnly?: boolean }[] = [
@@ -31,16 +44,17 @@ export function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   // Menu ponsel tertutup otomatis saat pindah halaman: ia hanya "terbuka" untuk path tempat dibuka.
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const menuOpen = menuPath === pathname;
-  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const sb = supabaseBrowser();
       const { data: auth } = await sb.auth.getUser();
+      if (cancelled) return;
       if (!auth.user) {
         router.replace("/login");
         return;
@@ -48,12 +62,20 @@ export function Shell({ children }: { children: ReactNode }) {
       const { data, error } = await sb.from("profiles").select("id, full_name, role").eq("id", auth.user.id).single();
       if (cancelled) return;
       if (error) setError("Profil pengguna tidak ditemukan. Pastikan schema.sql sudah dijalankan.");
-      else setProfile(data as Profile);
+      else {
+        setError(null);
+        setProfile(data as Profile);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [attempt, router]);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setAttempt((a) => a + 1);
+  }, []);
 
   async function logout() {
     await supabaseBrowser().auth.signOut();
@@ -119,13 +141,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
       </header>
       <main className="mx-auto max-w-7xl px-4 py-5">
-        {error ? (
-          <ErrorBox message={error} onRetry={() => setAttempt((a) => a + 1)} />
-        ) : !profile ? (
-          <Loading label="Menyiapkan kasir…" />
-        ) : (
-          <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>
-        )}
+        <ProfileContext.Provider value={{ profile, error, retry }}>{children}</ProfileContext.Provider>
       </main>
     </div>
   );

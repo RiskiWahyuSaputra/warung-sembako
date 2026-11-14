@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { useProfile } from "@/components/shell";
+import { RequireProfile, useProfile } from "@/components/shell";
 import { Empty, ErrorBox, Loading, PageHeader } from "@/components/ui";
 import { isLowStock, useCatalog } from "@/lib/catalog";
 import { dateTime, errorMessage, parseNumber, qty, rupiah } from "@/lib/format";
@@ -28,6 +28,14 @@ const TYPE_LABEL: Record<Movement["type"], string> = {
 };
 
 export default function StokPage() {
+  return (
+    <RequireProfile>
+      <StokContent />
+    </RequireProfile>
+  );
+}
+
+function StokContent() {
   const profile = useProfile();
   const { products, loading, error, reload } = useCatalog();
   const [historyVersion, setHistoryVersion] = useState(0);

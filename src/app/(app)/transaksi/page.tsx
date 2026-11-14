@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireProfile } from "@/components/shell";
 import { useEffect, useState } from "react";
 import { Receipt } from "@/components/receipt";
 import { Empty, ErrorBox, Loading, Modal, PageHeader } from "@/components/ui";
@@ -15,6 +16,14 @@ function dayRange(date: string) {
 }
 
 export default function TransaksiPage() {
+  return (
+    <RequireProfile>
+      <TransaksiContent />
+    </RequireProfile>
+  );
+}
+
+function TransaksiContent() {
   const [date, setDate] = useState(todayJakarta);
   const [status, setStatus] = useState<SaleStatus | "">("");
   const [sales, setSales] = useState<Sale[] | null>(null);

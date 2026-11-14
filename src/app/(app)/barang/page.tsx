@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ProductForm } from "@/components/product-form";
-import { useProfile } from "@/components/shell";
+import { RequireProfile, useProfile } from "@/components/shell";
 import { Empty, ErrorBox, Loading, Modal, PageHeader } from "@/components/ui";
 import { isLowStock, useCatalog } from "@/lib/catalog";
 import { qty, rupiah } from "@/lib/format";
@@ -10,6 +10,14 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
 
 export default function BarangPage() {
+  return (
+    <RequireProfile>
+      <BarangContent />
+    </RequireProfile>
+  );
+}
+
+function BarangContent() {
   const profile = useProfile();
   const isOwner = profile.role === "owner";
   const { products, categories, loading, error, reload } = useCatalog();

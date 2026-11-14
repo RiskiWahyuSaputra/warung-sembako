@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireProfile } from "@/components/shell";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { Checkout, type SaleLinePayload } from "@/components/checkout";
@@ -36,6 +37,14 @@ function lineValue(l: Line): { qty: number; subtotal: number } | null {
 }
 
 export default function KasirPage() {
+  return (
+    <RequireProfile>
+      <KasirContent />
+    </RequireProfile>
+  );
+}
+
+function KasirContent() {
   const { products, loading, error, reload } = useCatalog();
   const [lines, setLines] = useState<Line[]>([]);
   const [search, setSearch] = useState("");
@@ -145,10 +154,10 @@ export default function KasirPage() {
   return (
     <div className="grid gap-5 pb-24 lg:grid-cols-[1fr_400px] lg:pb-0">
       <h1 className="sr-only">Kasir</h1>
-      <section aria-labelledby="cari-label" className="min-w-0">
+      <section aria-label="Pilih barang" className="min-w-0">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-0 flex-1 basis-60">
-            <label id="cari-label" htmlFor="cari" className="label">
+            <label htmlFor="cari" className="label">
               Scan barcode atau ketik nama barang <span className="font-normal text-ink-soft">(F2)</span>
             </label>
             <input
@@ -246,7 +255,7 @@ export default function KasirPage() {
                         Hapus
                       </button>
                     </div>
-                    <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
+                    <div className="mt-2 grid grid-cols-[1.6fr_1fr] gap-2">
                       {l.product.product_units!.length > 1 ? (
                         <select
                           aria-label={`Satuan ${l.product.name}`}
@@ -256,7 +265,7 @@ export default function KasirPage() {
                         >
                           {l.product.product_units!.map((x) => (
                             <option key={x.id} value={x.id}>
-                              {x.name} · {rupiah(x.price)}
+                              {x.name}
                             </option>
                           ))}
                         </select>
