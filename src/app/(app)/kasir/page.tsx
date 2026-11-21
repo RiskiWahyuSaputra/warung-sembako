@@ -9,35 +9,11 @@ import { Empty, ErrorBox, Loading, Modal, ProductThumb } from "@/components/ui";
 import { productImageUrl } from "@/lib/product-image";
 import { useCatalog } from "@/lib/catalog";
 import { initials, type TileColor } from "@/lib/category-color";
+import { defaultUnit, lineValue, unitOf, type Line } from "@/lib/cart";
 import { parseNumber, qty, rupiah } from "@/lib/format";
 import type { Product, ProductUnit } from "@/lib/types";
 
-type Line = {
-  key: string;
-  product: Product;
-  unitId: string;
-  /** "qty": jumlah satuan. "amount": beli per nominal rupiah (bensin Rp10.000). */
-  mode: "qty" | "amount";
-  input: string;
-};
-
 let lineSeq = 0;
-
-const unitOf = (l: Line) => l.product.product_units!.find((u) => u.id === l.unitId)!;
-const defaultUnit = (p: Product) => p.product_units!.find((u) => u.is_default) ?? p.product_units![0];
-
-/** Jumlah satuan & subtotal sebuah baris, atau null jika input belum valid. */
-function lineValue(l: Line): { qty: number; subtotal: number } | null {
-  const u = unitOf(l);
-  const n = parseNumber(l.input);
-  if (!(n > 0)) return null;
-  if (l.mode === "amount") {
-    if (!(u.price > 0)) return null;
-    return { qty: Math.round((n / u.price) * 1000) / 1000, subtotal: Math.round(n) };
-  }
-  if (!l.product.allow_decimal && !Number.isInteger(n)) return null;
-  return { qty: n, subtotal: Math.round(n * u.price) };
-}
 
 export default function KasirPage() {
   return (

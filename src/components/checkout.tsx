@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type SVGProps } from "react";
+import { quickCash } from "@/lib/cart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { errorMessage, parseNumber, rupiah } from "@/lib/format";
 import type { Customer, PaymentMethod, Sale } from "@/lib/types";
@@ -19,16 +20,6 @@ const METHODS: { id: PaymentMethod; label: string; hint: string; icon: Component
   { id: "qris", label: "QRIS", hint: "Scan e-wallet / m-banking", icon: IconQris },
   { id: "kasbon", label: "Kasbon", hint: "Dicatat sebagai utang", icon: IconKasbon },
 ];
-
-/** Pecahan uang yang biasa diterima, untuk tombol cepat. */
-function quickCash(total: number) {
-  const options = new Set<number>([total]);
-  for (const step of [5000, 10000, 20000, 50000, 100000]) {
-    const v = Math.ceil(total / step) * step;
-    if (v > total) options.add(v);
-  }
-  return [...options].sort((a, b) => a - b).slice(0, 6);
-}
 
 export function Checkout({
   total,
