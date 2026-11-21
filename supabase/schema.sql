@@ -354,14 +354,32 @@ begin
     v_total := v_total + v_subtotal;
   end loop;
 
-  -- Cek stok cukup (dijumlahkan per produk, karena satu produk bisa beda satuan di keranjang)
+  -- Kunci baris produk (urut id supaya tidak deadlock): dua kasir yang menjual barang yang sama
+  -- harus antre, jadi barang terakhir tidak bisa terjual dua kali.
+  perform 1 from public.products
+    where id in (select product_id from public.sale_items where sale_id = v_sale.id)
+    order by id for update;
+
+  -- Cek stok cukup (dijumlahkan per produk, karena satu produk bisa beda satuan di keranjang).
+  -- Barang di tagihan QRIS lain yang belum dibayar ikut dihitung sebagai "dipesan": stoknya baru
+  -- dipotong saat lunas, dan pembayaran yang sudah masuk tidak boleh ditolak. QR berlaku 15 menit,
+  -- jadi tagihan yang lebih tua dari 20 menit dianggap kedaluwarsa walau webhook belum datang.
   for v_need in
-    select i.product_id, i.product_name, sum(i.qty * i.conversion) as need, p.stock, p.base_unit
+    select i.product_id, i.product_name, sum(i.qty * i.conversion) as need, p.stock, p.base_unit,
+           (select coalesce(sum(o.qty * o.conversion), 0)
+              from public.sale_items o join public.sales os on os.id = o.sale_id
+              where o.product_id = i.product_id and os.status = 'pending' and os.id <> v_sale.id
+                and os.created_at > now() - interval '20 minutes') as reserved
       from public.sale_items i join public.products p on p.id = i.product_id
       where i.sale_id = v_sale.id
       group by i.product_id, i.product_name, p.stock, p.base_unit
   loop
-    if v_need.need > v_need.stock then
+    if v_need.need > v_need.stock - v_need.reserved then
+      if v_need.reserved > 0 then
+        raise exception 'Stok % tidak cukup (sisa % %, % % menunggu pembayaran QRIS)', v_need.product_name,
+          trim_scale(greatest(v_need.stock - v_need.reserved, 0)), v_need.base_unit,
+          trim_scale(v_need.reserved), v_need.base_unit;
+      end if;
       raise exception 'Stok % tidak cukup (sisa % %)', v_need.product_name, trim_scale(v_need.stock), v_need.base_unit;
     end if;
   end loop;

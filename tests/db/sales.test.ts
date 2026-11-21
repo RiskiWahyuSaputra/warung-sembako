@@ -143,6 +143,34 @@ describe("QRIS", () => {
     );
   });
 
+  test("barang di tagihan QRIS yang belum dibayar tidak bisa dijual lagi", async () => {
+    // Stok gas 5: semuanya masuk tagihan QRIS yang belum dibayar
+    const qris = await createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 5 }], "qris");
+    await expect(createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 1 }], "cash", null, 22000)).rejects.toThrow(
+      /Stok Gas 3kg tidak cukup \(sisa 0 tabung, 5 tabung menunggu pembayaran QRIS\)/,
+    );
+
+    // Pelanggan tetap bisa membayar, dan stok tidak pernah minus
+    await db.admin("select public.finalize_sale($1)", [qris.rows[0].id]);
+    expect(await stockOf(db, s.products.gas)).toBe(0);
+  });
+
+  test("tagihan QRIS yang dibatalkan melepas stok yang dipesan", async () => {
+    const qris = await createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 5 }], "qris");
+    await db.admin("select public.cancel_pending_sale($1)", [qris.rows[0].id]);
+    const { rows } = await createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 1 }], "cash", null, 22000);
+    expect(rows[0].status).toBe("paid");
+  });
+
+  test("tagihan QRIS lebih dari 20 menit tidak lagi menahan stok, walau webhook belum datang", async () => {
+    const qris = await createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 5 }], "qris");
+    await db.admin("update public.sales set created_at = now() - interval '30 minutes' where id = $1", [
+      qris.rows[0].id,
+    ]);
+    const { rows } = await createSale(s.kasir, [{ unit_id: s.units.gasTukar, qty: 1 }], "cash", null, 22000);
+    expect(rows[0].status).toBe("paid");
+  });
+
   test("transaksi yang dibatalkan tidak bisa dilunasi", async () => {
     const { rows } = await createSale(s.kasir, [{ unit_id: s.units.rokokBungkus, qty: 1 }], "qris");
     await db.admin("select public.cancel_pending_sale($1, 'expired')", [rows[0].id]);
