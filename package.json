@@ -10,7 +10,8 @@
     "akun:tester": "node --env-file-if-exists=.env.local scripts/akun-tester.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo:reset": "node --env-file-if-exists=.env.demo scripts/demo-reset.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

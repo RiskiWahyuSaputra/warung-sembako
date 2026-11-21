@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { isDemo } from "@/lib/demo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { IconBarang, IconKasbon, IconKasir, IconKeluar, IconLaporan, IconStok, IconTransaksi } from "./icons";
@@ -145,6 +146,12 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </header>
+
+      {isDemo && (
+        <p className="no-print border-b border-line bg-primary-soft px-4 py-2 text-center text-sm font-semibold text-primary">
+          Mode demo: silakan coba semua fitur. Data dikembalikan seperti semula setiap malam. QRIS memakai sandbox Midtrans.
+        </p>
+      )}
 
       <main className="mx-auto max-w-[1440px] px-4 pt-5 pb-28 lg:px-6 lg:pb-8">
         <ProfileContext.Provider value={{ profile, error, retry }}>{children}</ProfileContext.Provider>

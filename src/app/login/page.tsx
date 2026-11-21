@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, isDemo } from "@/lib/demo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME || "Warung Sembako";
@@ -15,6 +16,10 @@ export default function LoginPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    await signIn(email, password);
+  }
+
+  async function signIn(email: string, password: string) {
     setBusy(true);
     setError(null);
     const { error } = await supabaseBrowser().auth.signInWithPassword({ email, password });
@@ -95,9 +100,33 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-        <p className="mt-6 text-center text-sm text-muted">
-          Akun kasir dibuat oleh pemilik warung di dashboard Supabase.
-        </p>
+        {isDemo ? (
+          <div className="panel mt-4 p-5">
+            <h2 className="font-extrabold">Coba tanpa daftar</h2>
+            <p className="mt-1 mb-4 text-sm text-muted">Data contoh, dikembalikan seperti semula setiap malam.</p>
+            <div className="grid gap-2">
+              {DEMO_ACCOUNTS.map((a) => (
+                <button
+                  key={a.role}
+                  type="button"
+                  className="btn btn-ghost min-h-12 w-full justify-between border border-line text-left"
+                  disabled={busy}
+                  onClick={() => signIn(a.email, DEMO_PASSWORD)}
+                >
+                  <span>
+                    <span className="block font-bold">Masuk sebagai {a.label}</span>
+                    <span className="block text-xs font-normal text-muted">{a.hint}</span>
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-6 text-center text-sm text-muted">
+            Akun kasir dibuat oleh pemilik warung di dashboard Supabase.
+          </p>
+        )}
       </div>
       </div>
     </main>

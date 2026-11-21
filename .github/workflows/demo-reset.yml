@@ -1,0 +1,26 @@
+name: Reset demo
+
+# Mengembalikan data demo setiap malam pukul 02.00 WIB (19.00 UTC).
+# Butuh secrets repo: DEMO_SUPABASE_URL, DEMO_SUPABASE_PUBLISHABLE_KEY, DEMO_SUPABASE_SECRET_KEY, DEMO_PASSWORD.
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEMO_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/demo-reset.mjs --yes
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.DEMO_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.DEMO_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.DEMO_SUPABASE_SECRET_KEY }}
+          NEXT_PUBLIC_DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
