@@ -17,6 +17,57 @@ Dibuat dengan Next.js 16 + Supabase, pembayaran QRIS lewat Midtrans.
 
 Pintasan kasir: `F2` cari barang, `F9` bayar.
 
+## Masalah yang diselesaikan
+
+Aplikasi kasir umum menganggap satu barang punya satu harga dan satu satuan. Warung tidak begitu:
+
+- Rokok dibeli per slop, dijual per bungkus **dan** per batang dari stok yang sama.
+- Bensin eceran sering dibeli "sepuluh ribu", bukan "satu liter".
+- Pembeli gas biasanya menukar tabung kosong, jadi stok tabung kosong ikut bertambah.
+- Pelanggan langganan berutang (kasbon) dan membayar dicicil.
+- Kasir tidak boleh tahu harga modal, dan tidak boleh bisa "mengakali" stok.
+
+## Keputusan teknis
+
+**Stok dalam satuan dasar.** Setiap barang punya satu satuan dasar (batang, liter, gram) dan beberapa satuan jual
+dengan faktor konversi (Bungkus = 16 batang). Stok, riwayat, dan harga modal selalu dihitung dalam satuan dasar,
+jadi menjual per bungkus dan per batang tidak pernah membuat stok selisih.
+
+**Semua tulisan lewat fungsi database.** Browser tidak bisa menulis ke tabel penjualan, stok, atau kasbon. Kasir
+memanggil `create_sale`, fungsi Postgres yang dalam satu transaksi: mengambil harga dari database (bukan dari browser),
+mengecek stok, membuat struk, memotong stok, dan mencatat riwayat. Kalau satu langkah gagal, semuanya batal.
+
+**Batasan peran di database, bukan di tampilan.** Row Level Security dan hak per kolom membuat kasir secara teknis
+tidak bisa membaca `cost_price` atau mengubah stok, bahkan lewat API Supabase langsung. Menyembunyikan tombol saja tidak cukup.
+
+**QRIS tanpa stok minus.** Pembayaran QRIS bersifat asinkron, dan uang yang sudah masuk tidak boleh ditolak.
+Karena itu stok baru dipotong saat lunas, tapi barang di tagihan yang belum dibayar dihitung sebagai stok yang sudah
+dipesan, dan baris produk dikunci saat dicek supaya dua kasir tidak bisa menjual barang terakhir bersamaan.
+
+```mermaid
+sequenceDiagram
+    participant K as Kasir (browser)
+    participant A as Next.js API
+    participant DB as Postgres (Supabase)
+    participant M as Midtrans
+
+    K->>DB: create_sale(keranjang, 'qris')
+    Note over DB: kunci produk, cek stok - stok dipesan<br/>status = pending, stok belum dipotong
+    K->>A: POST /api/midtrans/charge
+    A->>M: buat tagihan QRIS (15 menit)
+    M-->>K: QR tampil di dialog kasir
+    M->>A: webhook (bisa terkirim lebih dari sekali)
+    Note over A: cek tanda tangan SHA-512 dan nominal
+    A->>DB: finalize_sale (kunci rahasia, hanya server)
+    Note over DB: idempoten: sudah lunas = tidak dipotong lagi
+    loop setiap 3 detik, cadangan bila webhook terlambat
+        K->>A: GET /api/midtrans/status
+    end
+```
+
+**Webhook tidak dipercaya begitu saja.** Tanda tangan dicek dengan `timingSafeEqual`, nominal dicocokkan dengan total
+di database, dan `finalize_sale` hanya bisa dipanggil server. Webhook yang datang dua kali tidak memotong stok dua kali.
+
 ## Setup
 
 ### 1. Supabase
@@ -76,7 +127,7 @@ Buka http://localhost:3000 dan masuk dengan akun pemilik.
 ## Tes
 
 ```bash
-npm test            # 54 tes, ~20 detik
+npm test            # 61 tes, ~20 detik
 npm run typecheck
 npm run lint
 ```
