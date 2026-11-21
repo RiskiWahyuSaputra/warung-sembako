@@ -1,5 +1,7 @@
 # Warung Sembako
 
+[![CI](https://github.com/RiskiWahyuSaputra/warung-sembako/actions/workflows/ci.yml/badge.svg)](https://github.com/RiskiWahyuSaputra/warung-sembako/actions/workflows/ci.yml)
+
 Aplikasi kasir dan stok untuk warung sembako: bensin eceran, gas, galon, rokok, beras curah, dan barang harian.
 Dibuat dengan Next.js 16 + Supabase, pembayaran QRIS lewat Midtrans.
 
@@ -70,6 +72,22 @@ npm run dev
 ```
 
 Buka http://localhost:3000 dan masuk dengan akun pemilik.
+
+## Tes
+
+```bash
+npm test            # 54 tes, ~20 detik
+npm run typecheck
+npm run lint
+```
+
+- **Tes database** (`tests/db`) menjalankan `supabase/schema.sql` asli di [PGlite](https://pglite.dev) (Postgres di WASM),
+  jadi tidak butuh Supabase, Docker, atau internet. Yang diuji: stok berkurang dalam satuan dasar, transaksi batal utuh
+  bila stok kurang, bensin per nominal, tukar tabung, kasbon, webhook QRIS ganda, harga modal rata-rata, laporan,
+  dan batasan kasir lewat RLS (tidak bisa melihat modal, mengubah stok, atau menandai QRIS lunas sendiri).
+- **Tes unit** (`tests/unit`): hitung keranjang, format angka Indonesia, verifikasi tanda tangan webhook Midtrans.
+
+Semua tes, lint, typecheck, dan build berjalan otomatis di GitHub Actions setiap push.
 
 ## Catatan
 
