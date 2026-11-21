@@ -28,6 +28,19 @@ Pintasan kasir: `F2` cari barang, `F9` bayar.
 5. Matikan pendaftaran publik di **Authentication > Sign In / Providers > Allow new users to sign up**,
    supaya hanya pemilik yang bisa menambah akun.
 
+#### Akun tester (staging)
+
+Buat akun pemilik/admin untuk tester tanpa lewat dashboard Supabase:
+
+```bash
+npm run akun:tester -- tester@warung.test              # kata sandi acak, dicetak di terminal
+npm run akun:tester -- tester@warung.test Rahasia123   # kata sandi sendiri
+npm run akun:tester -- kasir@warung.test --kasir       # akun kasir
+node --env-file=.env.staging scripts/akun-tester.mjs tester@warung.test   # database staging
+```
+
+Skrip memakai `SUPABASE_SECRET_KEY` dan aman dijalankan ulang: akun yang sudah ada diperbarui kata sandi dan perannya.
+
 ### 2. Midtrans (QRIS)
 
 1. Daftar di [dashboard.midtrans.com](https://dashboard.midtrans.com), pakai mode **Sandbox** dulu.
